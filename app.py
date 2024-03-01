@@ -42,8 +42,9 @@ def main():
     if st.sidebar.button('Refresh Data'):
         st.experimental_rerun()
 
-    data = load_data(excel_path)
-    processed_data = {name: fetch_and_calculate(df) for name, df in data.items()}
+    d# Load data and ensure we make a copy of the cached data before modifying it
+    raw_data = load_data(excel_path)
+    processed_data = {name: fetch_and_calculate(df.copy()) for name, df in raw_data.items()}
 
     for name, df in processed_data.items():
         df['Today Pct Change'] = df['Today Pct Change'].apply(format_pct_change)
