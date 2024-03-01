@@ -53,25 +53,25 @@ def main():
 
     def color_scale(val):
     # Check if val is a number (not NaN or non-numeric)
-    try:
-        val = float(val)  # Ensure the value can be converted to float
-    except ValueError:
-        return 'gray'  # Return a default color if value is not numeric
+        try:
+            val = float(val)  # Ensure the value can be converted to float
+        except ValueError:
+            return 'gray'  # Return a default color if value is not numeric
 
-    if pd.isnull(val):
-        return 'gray'  # Handle NaN values by returning a default color
-    if val > 5:
-        return 'red'
-    elif val > 4:
-        return 'Crimson'
-    elif val > 3:
-        return 'pink'
-    elif val > 2:
-        return 'brown'
-    elif val > 1:
-        return 'orange'
-    else:
-        return 'blue'
+        if pd.isnull(val):
+            return 'gray'  # Handle NaN values by returning a default color
+        if val > 5:
+            return 'red'
+        elif val > 4:
+            return 'Crimson'
+        elif val > 3:
+            return 'pink'
+        elif val > 2:
+            return 'brown'
+        elif val > 1:
+            return 'orange'
+        else:
+            return 'blue'
 
     df_display['Color'] = df_display['Volume Ratio'].apply(color_scale)
 
