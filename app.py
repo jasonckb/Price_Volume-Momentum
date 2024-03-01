@@ -42,12 +42,15 @@ def main():
     if st.sidebar.button('Refresh Data'):
         st.experimental_rerun()
 
-    # Load data and ensure we make a copy of the cached data before modifying it
-    raw_data = load_data(excel_path)
-    processed_data = {name: fetch_and_calculate(df.copy(deep=True)) for name, df in raw_data.items()}
+    # Fetch the raw data only once and deep copy any data frame you retrieve for manipulation
+    if 'raw_data' not in st.session_state:
+        st.session_state.raw_data = load_data(excel_path)
+    
+    processed_data = {name: fetch_and_calculate(st.session_state.raw_data[name].copy(deep=True)) 
+                      for name in st.session_state.raw_data}
 
     index_choice = st.sidebar.selectbox('Select Index', list(processed_data.keys()))
-    df_display = processed_data[index_choice].copy(deep=True)  # Make a deep copy here as well
+    df_display = processed_data[index_choice].copy(deep=True)  # Ensuring another deep copy
 
     for name, df in processed_data.items():
         df['Today Pct Change'] = df['Today Pct Change'].apply(format_pct_change)
@@ -124,6 +127,7 @@ def main():
     )
 
     st.plotly_chart(fig)
+    st.write(df_display)
 
 if __name__ == "__main__":
     main()
