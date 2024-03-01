@@ -8,13 +8,13 @@ import openpyxl
 # Dropbox direct download link
 excel_path = 'https://www.dropbox.com/scl/fi/nw5fpges55aff7x5q3gh9/Index-Weight.xlsx?rlkey=rxdopdklplz15jk97zu2sual5&dl=1'
 
-@st.cache(show_spinner=False)
+@st.cache_data(show_spinner=False)
 def load_data(excel_path):
     sheet_names = ['HSI', 'HSTECH', 'HSCEI']
     dtype = {'Code': str}
     return {name: pd.read_excel(excel_path, sheet_name=name, dtype=dtype) for name in sheet_names}
 
-@st.cache(show_spinner=False)
+@st.cache_data(show_spinner=False)
 def fetch_and_calculate(df):
     for index, row in df.iterrows():
         stock_code = f"{row['Code'].zfill(4)}.HK"
@@ -127,7 +127,7 @@ def main():
     )
 
     st.plotly_chart(fig)
-    st.write(df_display)
+    
 
 if __name__ == "__main__":
     main()
