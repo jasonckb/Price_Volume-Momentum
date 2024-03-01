@@ -60,20 +60,35 @@ def main():
     size_multiplier = st.sidebar.slider("Bubble Size Multiplier", min_value=0.5, max_value=5.0, value=1.0)
 
     if show_chart:
-        # Apply the color scale function and generate the chart...
+        # Check and prepare the data
+        df_display['Volume Ratio'] = pd.to_numeric(df_display['Volume Ratio'], errors='coerce').fillna(0)
+        df_display['Today Pct Change'] = pd.to_numeric(df_display['Today Pct Change'].str.rstrip('%'), errors='coerce').fillna(0)
         df_display['Size'] = df_display['Weight'] * size_multiplier  # Adjust 'Weight' by slider value
+        
+        # Ensure no NaN values for 'Size'
+        df_display['Size'] = pd.to_numeric(df_display['Size'], errors='coerce').fillna(0)
 
-        fig = px.scatter(df_display, x='Volume Ratio', y='Today Pct Change', size='Size',
-                         hover_data=['Name', 'Code', 'Today Pct Change', 'Volume Ratio'],
-                         color='Color', color_discrete_map="identity",
-                         title='Bubble Chart', height=800, width=1000)
+        # Now creating the figure
+        fig = px.scatter(
+            df_display, 
+            x='Volume Ratio', 
+            y='Today Pct Change', 
+            size='Size',
+            hover_data=['Name', 'Code', 'Today Pct Change', 'Volume Ratio'],
+            color='Color', 
+            color_discrete_map="identity",
+            title='Bubble Chart', 
+            height=800, 
+            width=1000
+        )
 
-        # 2. Set chart background to black and axis text to white
+        # Customization for a black background and white text...
         fig.update_layout({
             'plot_bgcolor': 'black',
             'paper_bgcolor': 'black',
             'font': {'color': 'white'}
         })
+        
 
         fig.update_xaxes(
             zeroline=True, zerolinewidth=2, zerolinecolor='white',
