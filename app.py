@@ -107,24 +107,26 @@ def main():
 
     # Update layout for axis titles
     fig.update_layout(
-        xaxis_title="Volume Ratio",
-        yaxis_title="Today Pct Change",
-        font=dict(
-            family="Courier New, monospace",
-            size=18,
-            color="RebeccaPurple"
-        ),
-        xaxis=dict(
-            title_font=dict(size=18, color='RebeccaPurple'),
-            tickfont=dict(size=16, color='RebeccaPurple'),  # Update tick font size here
-            zeroline=True, zerolinewidth=2, zerolinecolor='black'
-        ),
-        yaxis=dict(
-            title_font=dict(size=18, color='RebeccaPurple'),
-            tickfont=dict(size=16, color='RebeccaPurple'),  # Update tick font size here
-            zeroline=True, zerolinewidth=2, zerolinecolor='black'
-        )
+    xaxis_title="Volume Ratio",
+    yaxis_title="Today Pct Change",
+    font=dict(
+        family="Courier New, monospace",
+        size=18,
+        color="white"  # Changed from RebeccaPurple to white for visibility on a black background
+    ),
+    plot_bgcolor='black',  # Set plot background to black
+    paper_bgcolor='black',  # Set overall background to black
+    xaxis=dict(
+        title_font=dict(size=18, color='white'),  # Ensure title is visible on a black background
+        tickfont=dict(size=16, color='white'),  # Ensure ticks are visible
+        zeroline=True, zerolinewidth=2, zerolinecolor='white'  # Ensure zero line is visible
+    ),
+    yaxis=dict(
+        title_font=dict(size=18, color='white'),  # Ensure title is visible on a black background
+        tickfont=dict(size=16, color='white'),  # Ensure ticks are visible
+        zeroline=True, zerolinewidth=2, zerolinecolor='white'  # Ensure zero line is visible
     )
+)
 
     st.plotly_chart(fig)
     
