@@ -81,8 +81,8 @@ def main():
     df_display['Color'] = df_display['Volume Ratio'].apply(color_scale)
 
     # Set the y-axis to include negative returns
-    min_pct_change = df_display['Today Pct Change'].str.rstrip('%').astype('float').min()
-    max_pct_change = df_display['Today Pct Change'].str.rstrip('%').astype('float').max() * 1.1  # 10% padding
+    min_pct_change = df_display['Today Pct Change'].min()
+    max_pct_change = df_display['Today Pct Change'].max() * 1.1  # Adjusted for padding
 
     fig = px.scatter(df_display, x='Volume Ratio', y='Today Pct Change', size='Weight',
                      hover_data=['Name', 'Code', 'Today Pct Change', 'Volume Ratio'],
