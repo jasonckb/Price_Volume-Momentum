@@ -1,8 +1,8 @@
 streamlit
-yfinance
-numpy
 pandas
+yfinance
 plotly
+openpyxl
 
 
 
