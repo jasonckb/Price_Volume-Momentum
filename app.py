@@ -5,15 +5,15 @@ import plotly.express as px
 
 #excel_path = 'C:/Users/user/Desktop/MyScripts/Index Bubble Chart/Index Weight.xlsx'
 # Dropbox direct download link
-excel_path = 'https://dl.dropboxusercontent.com/s/j6jjjggzxs3agwy1r6egd/Index-Weight.xlsx?dl=1'
+excel_path = 'https://www.dropbox.com/scl/fi/j6jjjggzxs3agwy1r6egd/Index-Weight.xlsx?rlkey=wdartkpsq12oxrexxcg342s6i&dl=1'
 
-@st.cache_data(show_spinner=False)
+@st.cache(suppress_st_warning=True, show_spinner=False)
 def load_data(excel_path):
     sheet_names = ['HSI', 'HSTECH', 'HSCEI']
     dtype = {'Code': str}
     return {name: pd.read_excel(excel_path, sheet_name=name, dtype=dtype) for name in sheet_names}
 
-@st.cache_data(show_spinner=False)
+@st.cache(suppress_st_warning=True, show_spinner=False)
 def fetch_and_calculate(df):
     for index, row in df.iterrows():
         stock_code = f"{row['Code'].zfill(4)}.HK"
