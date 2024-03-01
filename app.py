@@ -44,14 +44,15 @@ def main():
 
     # Load data and ensure we make a copy of the cached data before modifying it
     raw_data = load_data(excel_path)
-    processed_data = {name: fetch_and_calculate(df.copy()) for name, df in raw_data.items()}
+    processed_data = {name: fetch_and_calculate(df.copy(deep=True)) for name, df in raw_data.items()}
+
+    index_choice = st.sidebar.selectbox('Select Index', list(processed_data.keys()))
+    df_display = processed_data[index_choice].copy(deep=True)  # Make a deep copy here as well
 
     for name, df in processed_data.items():
         df['Today Pct Change'] = df['Today Pct Change'].apply(format_pct_change)
 
-    index_choice = st.sidebar.selectbox('Select Index', list(processed_data.keys()))
-    df_display = processed_data[index_choice]
-
+    
     def color_scale(val):
     # Check if val is a number (not NaN or non-numeric)
         try:
