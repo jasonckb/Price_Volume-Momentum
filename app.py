@@ -6,7 +6,7 @@ import openpyxl
 
 #excel_path = 'C:/Users/user/Desktop/MyScripts/Index Bubble Chart/Index Weight.xlsx'
 # Dropbox direct download link
-excel_path = 'https://www.dropbox.com/scl/fi/j6jjjggzxs3agwy1r6egd/Index-Weight.xlsx?rlkey=wdartkpsq12oxrexxcg342s6i&dl=1'
+excel_path = 'https://www.dropbox.com/scl/fi/nw5fpges55aff7x5q3gh9/Index-Weight.xlsx?rlkey=rxdopdklplz15jk97zu2sual5&dl=1'
 
 @st.cache(suppress_st_warning=True, show_spinner=False)
 def load_data(excel_path):
