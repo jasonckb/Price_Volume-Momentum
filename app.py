@@ -76,7 +76,7 @@ def main():
         elif val > 1:
             return 'orange'
         else:
-            return 'blue'
+            return 'gray'
 
     df_display['Color'] = df_display['Volume Ratio'].apply(color_scale)
 
