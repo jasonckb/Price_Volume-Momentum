@@ -162,6 +162,8 @@ def plot_candlestick(stock_code):
 
     # Calculate the 200 EMA
     stock_data['EMA_200'] = stock_data['Close'].ewm(span=200, adjust=False).mean()
+    stock_data['EMA_50'] = stock_data['Close'].ewm(span=50, adjust=False).mean()
+    stock_data['EMA_20'] = stock_data['Close'].ewm(span=20, adjust=False).mean()
 
     # Filter the last year for display
     stock_data_last_year = stock_data.last('1Y')
@@ -200,14 +202,30 @@ def plot_candlestick(stock_code):
 
 
 
-    # Add the EMA_200 overlay to the chart
+     # Add the EMAs to the chart
+    fig.add_trace(go.Scatter(
+        x=stock_data_last_year.index,
+        y=stock_data_last_year['EMA_20'],
+        mode='lines',
+        name='EMA 20',
+        line=dict(color='green', width=1.5)
+    ))
+
+    fig.add_trace(go.Scatter(
+        x=stock_data_last_year.index,
+        y=stock_data_last_year['EMA_50'],
+        mode='lines',
+        name='EMA 50',
+        line=dict(color='blue', width=1.5)
+    ))
+
     fig.add_trace(go.Scatter(
         x=stock_data_last_year.index,
         y=stock_data_last_year['EMA_200'],
         mode='lines',
         name='EMA 200',
         line=dict(color='gray', width=1.5)
-))
+    ))
 
     st.plotly_chart(fig)
 
