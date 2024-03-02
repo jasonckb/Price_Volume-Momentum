@@ -159,8 +159,8 @@ def plot_candlestick(stock_code):
                                          high=stock_data_last_year['High'],
                                          low=stock_data_last_year['Low'],
                                          close=stock_data_last_year['Close'],
-                                         increasing_line_color='blue',
-                                         decreasing_line_color='red')])
+                                         increasing_line_color=' #13abec',
+                                         decreasing_line_color='#8a0a0a')])
 
     # Add the EMA_200 overlay
     fig.update_layout(
@@ -171,9 +171,9 @@ def plot_candlestick(stock_code):
     xaxis_title='Date',
     xaxis_rangeslider_visible=False,  # Hide the range slider
     xaxis_tickformat='%b %Y',  # Set date format to abbreviated month and full year
-    plot_bgcolor='gray',  # Optional: Set plot background to black
-    paper_bgcolor='gray',  # Optional: Set paper background to black
-    font=dict(color='white')  # Optional: Set font color to white for better contrast
+    plot_bgcolor='white',  # Optional: Set plot background to black
+    paper_bgcolor='white',  # Optional: Set paper background to black
+    font=dict(color='black')  # Optional: Set font color to white for better contrast
 )
 
 # Remove the volume bar chart from the figure if present
