@@ -59,30 +59,30 @@ def main():
 
     
     def color_scale(val):
-    try:
+        try:
         # Convert to float, if conversion fails, it will go to except block
-        val = float(val)
-    except (ValueError, TypeError):
+            val = float(val)
+        except (ValueError, TypeError):
         # Return a default color if value is not a number or NaN
-        return 'gray'
+            return 'gray'
     
     # Check if the value is NaN (after conversion attempt)
-    if pd.isna(val):
-        return 'gray'
+        if pd.isna(val):
+            return 'gray'
 
     # Apply color scale based on the value
-    if val > 5:
-        return 'red'
-    elif val > 4:
-        return 'Crimson'
-    elif val > 3:
-        return 'pink'
-    elif val > 2:
-        return 'brown'
-    elif val > 1:
-        return 'orange'
-    else:
-        return 'gray'
+        if val > 5:
+            return 'red'
+        elif val > 4:
+            return 'Crimson'
+        elif val > 3:
+            return 'pink'
+        elif val > 2:
+            return 'brown'
+        elif val > 1:
+            return 'orange'
+        else:
+            return 'gray'
 
 
     # Clean or preprocess 'Volume Ratio' to handle NaNs and non-numeric values
