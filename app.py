@@ -153,14 +153,17 @@ def plot_candlestick(stock_code):
     last_year_start_date = end_date - datetime.timedelta(days=365)
     stock_data_last_year = stock_data.loc[last_year_start_date:end_date]
 
-    # Create the candlestick chart using only the last year's data
-    fig = go.Figure(data=[go.Candlestick(x=stock_data_last_year.index,
-                                         open=stock_data_last_year['Open'],
-                                         high=stock_data_last_year['High'],
-                                         low=stock_data_last_year['Low'],
-                                         close=stock_data_last_year['Close'],
-                                         increasing_line_color='blue',
-                                         decreasing_line_color='red')])
+    fig = go.Figure(data=[go.Candlestick(
+    x=stock_data_last_year.index,
+    open=stock_data_last_year['Open'],
+    high=stock_data_last_year['High'],
+    low=stock_data_last_year['Low'],
+    close=stock_data_last_year['Close'],
+    increasing_line_color='blue',
+    decreasing_line_color='red',
+    width=0.6  # Example width adjustment
+)])
+
 
     # Add the EMA_200 overlay
     fig.add_trace(go.Scatter(x=stock_data_last_year.index, y=stock_data_last_year['EMA_200'],
