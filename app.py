@@ -138,11 +138,9 @@ if __name__ == "__main__":
 
 
 def plot_candlestick(stock_code):
-    # Calculate the start and end dates dynamically
+    # Fetch historical data
     end_date = datetime.datetime.today()
-    start_date = end_date - datetime.timedelta(days=3 * 365)  # Approximate 3 years, not accounting for leap years
-
-# Fetch the stock data
+    start_date = end_date - datetime.timedelta(days=3 * 365)
     stock_data = yf.download(stock_code, start=start_date.strftime('%Y-%m-%d'), end=end_date.strftime('%Y-%m-%d'))
 
     # Calculate the 200 EMA
@@ -163,33 +161,18 @@ def plot_candlestick(stock_code):
     # Add the EMA_200 overlay
     fig.add_trace(go.Scatter(x=stock_data_last_year.index, y=stock_data_last_year['EMA_200'],
                              mode='lines', name='EMA 200',
-                             line=dict(color='gray', width=2)))
+                             line=dict(color='gray', width=1.5)))
 
-    # Update the layout
-    fig.update_layout(xaxis_rangeslider_visible=False,  # Hide range slider
-                      title=f"{stock_code} Stock Price",
-                      yaxis_title='Price (HKD)',
-                      xaxis_title='Date')
+    # Update the layout with specified height and width
+    fig.update_layout(
+        height=600,  # Set the height of the chart
+        width=1000,  # Set the width of the chart
+        title=f"{stock_code} Stock Price",
+        yaxis_title='Price (HKD)',
+        xaxis_title='Date',
+        xaxis_rangeslider_visible=False  # Hide the range slider
+    )
 
     st.plotly_chart(fig)
 
-def main():
-    # Your existing app setup...
-    
-    # New sidebar input for the stock code
-    st.sidebar.title("Stock Code")
-    stock_input = st.sidebar.text_input("Enter a Stock Code:", value="", max_chars=5)
-    
-    # Validate and format the input
-    if stock_input and stock_input.isdigit() and len(stock_input) <= 4:
-        formatted_stock_code = stock_input.zfill(4) + ".HK"
-        st.sidebar.text(f"Formatted Code: {formatted_stock_code}")
-
-        # Call the function to plot the candlestick chart
-        plot_candlestick(formatted_stock_code)
-    elif stock_input:
-        st.sidebar.error("Please enter a numeric stock code up to 4 digits.")
-
-if __name__ == "__main__":
-    main()
 
