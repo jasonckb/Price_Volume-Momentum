@@ -17,9 +17,14 @@ def load_data(excel_path):
     return {name: pd.read_excel(excel_path, sheet_name=name, dtype=dtype) for name in sheet_names}
 
 @st.cache_data(show_spinner=False)
-def fetch_and_calculate(df):
+def fetch_and_calculate(df, index_name):
     for index, row in df.iterrows():
-        stock_code = f"{row['Code'].zfill(4)}.HK"
+        # Adjust the stock code format based on the index
+        if index_name == 'SP 500':
+            stock_code = row['Code']  # S&P 500 codes should be used as is
+        else:
+            stock_code = f"{row['Code'].zfill(4)}.HK"  # For Hong Kong stocks, pad and add suffix
+
         stock = yf.Ticker(stock_code)
         hist = stock.history(period="11d")
 
@@ -33,6 +38,7 @@ def fetch_and_calculate(df):
             df.at[index, 'Volume Ratio'] = round(today_data['Volume'] / avg_volume_10d, 2)
     
     return df
+
 
 def format_pct_change(val):
     return f"{val}%" if pd.notnull(val) else ""
@@ -48,8 +54,9 @@ def main():
     if 'raw_data' not in st.session_state:
         st.session_state.raw_data = load_data(excel_path)
     
-    processed_data = {name: fetch_and_calculate(st.session_state.raw_data[name].copy(deep=True)) 
-                      for name in st.session_state.raw_data}
+    processed_data = {name: fetch_and_calculate(st.session_state.raw_data[name].copy(deep=True), name) 
+                  for name in st.session_state.raw_data}
+
 
     index_choice = st.sidebar.selectbox('Select Index', list(processed_data.keys()))
     df_display = processed_data[index_choice].copy(deep=True)  # Ensuring another deep copy
