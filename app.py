@@ -89,7 +89,7 @@ def main():
     fig = px.scatter(df_display, x='Volume Ratio', y='Today Pct Change', size='Weight',
                      hover_data=['Name', 'Code', 'Today Pct Change', 'Volume Ratio'],
                      color='Color', color_discrete_map="identity",
-                     title=f'Bubble Chart for {index_choice}', height=800, width=1000)
+                     title=f'{index_choice} Volume Ratio: Today VS.10 Days Average', height=800, width=1000)
 
     # Apply a logarithmic scale to the x-axis if all values are positive
     if df_display['Volume Ratio'].min() > 0:
