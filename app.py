@@ -164,13 +164,24 @@ def plot_candlestick(stock_code):
 
     # Add the EMA_200 overlay
     fig.update_layout(
-        xaxis_type='category',  # Treat the x-axis values as distinct categories
-        height=600,  # Set the height of the chart
-        width=1000,  # Set the width of the chart
-        title=f"{stock_code} Stock Price and 200-day EMA - Last Year",
-        yaxis_title='Price (HKD)',
-        xaxis_title='Date'
+    height=600,  # Set the height of the chart
+    width=1000,  # Set the width of the chart
+    title=f"{stock_code} Stock Price and 200-day EMA - Last Year",
+    yaxis_title='Price (HKD)',
+    xaxis_title='Date',
+    xaxis_rangeslider_visible=False,  # Hide the range slider
+    xaxis_tickformat='%b %Y',  # Set date format to abbreviated month and full year
+    plot_bgcolor='black',  # Optional: Set plot background to black
+    paper_bgcolor='black',  # Optional: Set paper background to black
+    font=dict(color='white')  # Optional: Set font color to white for better contrast
 )
+
+# Remove the volume bar chart from the figure if present
+# Assuming your figure variable is 'fig'
+    if len(fig.data) > 1:
+        fig.data = [fig.data[0], fig.data[-1]]  # Keep only the candlestick and EMA line
+
+
 
     # Add the EMA_200 overlay to the chart
     fig.add_trace(go.Scatter(
