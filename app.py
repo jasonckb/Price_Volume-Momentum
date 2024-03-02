@@ -212,22 +212,24 @@ def plot_candlestick(stock_code):
     st.plotly_chart(fig)
 
 def main():
-    # Your existing app setup...
-    
-    # New sidebar input for the stock code
     st.sidebar.title("Stock Code")
+    index_choice = st.sidebar.selectbox('Select Index', ['HSI', 'HSTECH', 'HSCEI', 'SP 500'])
     stock_input = st.sidebar.text_input("Enter a Stock Code:", value="", max_chars=5)
     
-    # Validate and format the input
-    if stock_input and stock_input.isdigit() and len(stock_input) <= 4:
-        formatted_stock_code = stock_input.zfill(4) + ".HK"
-        st.sidebar.text(f"Formatted Code: {formatted_stock_code}")
-
-        # Call the function to plot the candlestick chart
-        plot_candlestick(formatted_stock_code)
-    elif stock_input:
-        st.sidebar.error("Please enter a numeric stock code up to 4 digits.")
+    if stock_input:
+        if index_choice == 'SP 500':
+            # Assuming SP 500 codes are used as they are
+            if stock_input.isalpha():
+                plot_candlestick(stock_input)
+            else:
+                st.sidebar.error("Please enter a valid stock code for SP 500 stocks.")
+        else:
+            # Assuming other indexes use numeric codes
+            if stock_input.isdigit() and len(stock_input) <= 4:
+                formatted_stock_code = stock_input.zfill(4) + ".HK"
+                plot_candlestick(formatted_stock_code)
+            else:
+                st.sidebar.error("Please enter a numeric stock code up to 4 digits for Hong Kong stocks.")
 
 if __name__ == "__main__":
     main()
-
