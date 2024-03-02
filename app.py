@@ -213,23 +213,22 @@ def plot_candlestick(stock_code):
 
 def main():
     st.sidebar.title("Stock Code")
+    index_choice = st.sidebar.selectbox('Select Index', ['HSI', 'HSTECH', 'HSCEI', 'SP 500'], key='index_select')
     
-    stock_input = st.sidebar.text_input("Enter a Stock Code:", value="", max_chars=5)
+    stock_input = st.sidebar.text_input("Enter a Stock Code:", value="", max_chars=5, key='stock_input')
     
     if stock_input:
         if index_choice == 'SP 500':
-            # Assuming SP 500 codes are used as they are
             if stock_input.isalpha():
-                plot_candlestick(stock_input)
+                plot_candlestick(stock_input)  # Ensure this function is defined
             else:
-                st.sidebar.error("Please enter a valid stock code for SP 500 stocks.")
+                st.sidebar.error("Please enter a valid stock code for SP 500 stocks.", key='error_sp500')
         else:
-            # Assuming other indexes use numeric codes
             if stock_input.isdigit() and len(stock_input) <= 4:
                 formatted_stock_code = stock_input.zfill(4) + ".HK"
-                plot_candlestick(formatted_stock_code)
+                plot_candlestick(formatted_stock_code)  # Ensure this function is defined
             else:
-                st.sidebar.error("Please enter a numeric stock code up to 4 digits for Hong Kong stocks.")
+                st.sidebar.error("Please enter a numeric stock code up to 4 digits for Hong Kong stocks.", key='error_hk')
 
 if __name__ == "__main__":
     main()
