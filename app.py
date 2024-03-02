@@ -170,7 +170,7 @@ def plot_candlestick(stock_code):
     # Update the layout with specified height and width
     fig.update_layout(
         height=600,  # Set the height of the chart
-        width=1000,  # Set the width of the chart
+        width=1200,  # Set the width of the chart
         title=f"{stock_code} Stock Price",
         yaxis_title='Price (HKD)',
         xaxis_title='Date',
