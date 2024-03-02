@@ -213,7 +213,7 @@ def plot_candlestick(stock_code):
 
 def main():
     st.sidebar.title("Stock Code")
-    index_choice = st.sidebar.selectbox('Select Index', ['HSI', 'HSTECH', 'HSCEI', 'SP 500'])
+    
     stock_input = st.sidebar.text_input("Enter a Stock Code:", value="", max_chars=5)
     
     if stock_input:
