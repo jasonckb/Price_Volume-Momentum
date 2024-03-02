@@ -59,28 +59,38 @@ def main():
 
     
     def color_scale(val):
-    # Check if val is a number (not NaN or non-numeric)
-        try:
-            val = float(val)  # Ensure the value can be converted to float
-        except ValueError:
-            return 'gray'  # Return a default color if value is not numeric
+    try:
+        # Convert to float, if conversion fails, it will go to except block
+        val = float(val)
+    except (ValueError, TypeError):
+        # Return a default color if value is not a number or NaN
+        return 'gray'
+    
+    # Check if the value is NaN (after conversion attempt)
+    if pd.isna(val):
+        return 'gray'
 
-        if pd.isnull(val):
-            return 'gray'  # Handle NaN values by returning a default color
-        if val > 5:
-            return 'red'
-        elif val > 4:
-            return 'Crimson'
-        elif val > 3:
-            return 'pink'
-        elif val > 2:
-            return 'brown'
-        elif val > 1:
-            return 'orange'
-        else:
-            return 'gray'
+    # Apply color scale based on the value
+    if val > 5:
+        return 'red'
+    elif val > 4:
+        return 'Crimson'
+    elif val > 3:
+        return 'pink'
+    elif val > 2:
+        return 'brown'
+    elif val > 1:
+        return 'orange'
+    else:
+        return 'gray'
 
+
+    # Clean or preprocess 'Volume Ratio' to handle NaNs and non-numeric values
+    df_display['Volume Ratio'] = pd.to_numeric(df_display['Volume Ratio'], errors='coerce').fillna(0)
+
+# Now it's safe to apply 'color_scale'
     df_display['Color'] = df_display['Volume Ratio'].apply(color_scale)
+
 
     # Set the y-axis to include negative returns
     min_pct_change = df_display['Today Pct Change'].min()
