@@ -2,7 +2,9 @@ import streamlit as st
 import pandas as pd
 import yfinance as yf
 import plotly.express as px
+import plotly.graph_objs as go
 import openpyxl
+import datetime
 
 #excel_path = 'C:/Users/user/Desktop/MyScripts/Index Bubble Chart/Index Weight.xlsx'
 # Dropbox direct download link
@@ -135,5 +137,59 @@ if __name__ == "__main__":
     main()
 
 
+def plot_candlestick(stock_code):
+    # Calculate the start and end dates dynamically
+    end_date = datetime.datetime.today()
+    start_date = end_date - datetime.timedelta(days=3 * 365)  # Approximate 3 years, not accounting for leap years
 
+# Fetch the stock data
+    stock_data = yf.download(stock_code, start=start_date.strftime('%Y-%m-%d'), end=end_date.strftime('%Y-%m-%d'))
+
+    # Calculate the 200 EMA
+    stock_data['EMA_200'] = stock_data['Close'].ewm(span=200, adjust=False).mean()
+
+    # Filter the last year for display
+    stock_data_last_year = stock_data.last('1Y')
+
+    # Define a candlestick chart
+    fig = go.Figure(data=[go.Candlestick(x=stock_data_last_year.index,
+                                         open=stock_data_last_year['Open'],
+                                         high=stock_data_last_year['High'],
+                                         low=stock_data_last_year['Low'],
+                                         close=stock_data_last_year['Close'],
+                                         increasing_line_color='blue',
+                                         decreasing_line_color='red')])
+
+    # Add the EMA_200 overlay
+    fig.add_trace(go.Scatter(x=stock_data_last_year.index, y=stock_data_last_year['EMA_200'],
+                             mode='lines', name='EMA 200',
+                             line=dict(color='gray', width=2)))
+
+    # Update the layout
+    fig.update_layout(xaxis_rangeslider_visible=False,  # Hide range slider
+                      title=f"{stock_code} Stock Price",
+                      yaxis_title='Price (HKD)',
+                      xaxis_title='Date')
+
+    st.plotly_chart(fig)
+
+def main():
+    # Your existing app setup...
+    
+    # New sidebar input for the stock code
+    st.sidebar.title("Stock Code")
+    stock_input = st.sidebar.text_input("Enter a Stock Code:", value="", max_chars=5)
+    
+    # Validate and format the input
+    if stock_input and stock_input.isdigit() and len(stock_input) <= 4:
+        formatted_stock_code = stock_input.zfill(4) + ".HK"
+        st.sidebar.text(f"Formatted Code: {formatted_stock_code}")
+
+        # Call the function to plot the candlestick chart
+        plot_candlestick(formatted_stock_code)
+    elif stock_input:
+        st.sidebar.error("Please enter a numeric stock code up to 4 digits.")
+
+if __name__ == "__main__":
+    main()
 
