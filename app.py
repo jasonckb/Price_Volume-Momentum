@@ -149,7 +149,11 @@ def plot_candlestick(stock_code):
     # Filter the last year for display
     stock_data_last_year = stock_data.last('1Y')
 
-    # Define a candlestick chart
+    # Filter the data to only the last year for display
+    last_year_start_date = end_date - datetime.timedelta(days=365)
+    stock_data_last_year = stock_data.loc[last_year_start_date:end_date]
+
+    # Create the candlestick chart using only the last year's data
     fig = go.Figure(data=[go.Candlestick(x=stock_data_last_year.index,
                                          open=stock_data_last_year['Open'],
                                          high=stock_data_last_year['High'],
