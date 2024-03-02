@@ -154,40 +154,38 @@ def plot_candlestick(stock_code):
     stock_data_last_year = stock_data.loc[last_year_start_date:end_date]
 
     # Create the candlestick chart using only the last year's data
-    fig = go.Figure(data=[go.Candlestick(
-    x=stock_data_last_year.index,
-    open=stock_data_last_year['Open'],
-    high=stock_data_last_year['High'],
-    low=stock_data_last_year['Low'],
-    close=stock_data_last_year['Close'],
-    increasing_line_color='blue',
-    decreasing_line_color='red'
-)])
+    fig = go.Figure(data=[go.Candlestick(x=stock_data_last_year.index,
+                                         open=stock_data_last_year['Open'],
+                                         high=stock_data_last_year['High'],
+                                         low=stock_data_last_year['Low'],
+                                         close=stock_data_last_year['Close'],
+                                         increasing_line_color='blue',
+                                         decreasing_line_color='red')])
 
-# Set x-axis type to 'category' to ignore non-trading days
-fig.update_layout(
-    xaxis_type='category',  # Treat the x-axis values as distinct categories
-    height=600,  # Set the height of the chart
-    width=1000,  # Set the width of the chart
-    title=f"{stock_code} Stock Price and 200-day EMA - Last Year",
-    yaxis_title='Price (HKD)',
-    xaxis_title='Date'
+    # Add the EMA_200 overlay
+    fig.update_layout(
+        xaxis_type='category',  # Treat the x-axis values as distinct categories
+        height=600,  # Set the height of the chart
+        width=1000,  # Set the width of the chart
+        title=f"{stock_code} Stock Price and 200-day EMA - Last Year",
+        yaxis_title='Price (HKD)',
+        xaxis_title='Date'
 )
 
-# Add the EMA_200 overlay to the chart
-fig.add_trace(go.Scatter(
-    x=stock_data_last_year.index,
-    y=stock_data_last_year['EMA_200'],
-    mode='lines',
-    name='EMA 200',
-    line=dict(color='gray', width=1.5)
+    # Add the EMA_200 overlay to the chart
+    fig.add_trace(go.Scatter(
+        x=stock_data_last_year.index,
+        y=stock_data_last_year['EMA_200'],
+        mode='lines',
+        name='EMA 200',
+        line=dict(color='gray', width=1.5)
 ))
 
-st.plotly_chart(fig)
-
+    st.plotly_chart(fig)
 
 def main():
-     
+    # Your existing app setup...
+    
     # New sidebar input for the stock code
     st.sidebar.title("Stock Code")
     stock_input = st.sidebar.text_input("Enter a Stock Code:", value="", max_chars=5)
