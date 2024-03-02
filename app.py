@@ -12,7 +12,7 @@ excel_path = 'https://www.dropbox.com/scl/fi/nw5fpges55aff7x5q3gh9/Index-Weight.
 
 @st.cache_data(show_spinner=False)
 def load_data(excel_path):
-    sheet_names = ['HSI', 'HSTECH', 'HSCEI']
+    sheet_names = ['HSI', 'HSTECH', 'HSCEI','SP 500']
     dtype = {'Code': str}
     return {name: pd.read_excel(excel_path, sheet_name=name, dtype=dtype) for name in sheet_names}
 
@@ -38,7 +38,7 @@ def format_pct_change(val):
     return f"{val}%" if pd.notnull(val) else ""
 
 def main():
-    st.set_page_config(page_title="HK Stocks Volume & Price Momentum by Jason Chan", layout="wide")
+    st.set_page_config(page_title="Index Constituents Volume & Price Momentum by Jason Chan", layout="wide")
     st.title('Index Components Volume & Price Momentum by Jason Chan')
     # Refresh button in the sidebar
     if st.sidebar.button('Refresh Data'):
