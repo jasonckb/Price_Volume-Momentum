@@ -175,4 +175,23 @@ def plot_candlestick(stock_code):
 
     st.plotly_chart(fig)
 
+def main():
+    # Your existing app setup...
+    
+    # New sidebar input for the stock code
+    st.sidebar.title("Stock Code")
+    stock_input = st.sidebar.text_input("Enter a Stock Code:", value="", max_chars=5)
+    
+    # Validate and format the input
+    if stock_input and stock_input.isdigit() and len(stock_input) <= 4:
+        formatted_stock_code = stock_input.zfill(4) + ".HK"
+        st.sidebar.text(f"Formatted Code: {formatted_stock_code}")
+
+        # Call the function to plot the candlestick chart
+        plot_candlestick(formatted_stock_code)
+    elif stock_input:
+        st.sidebar.error("Please enter a numeric stock code up to 4 digits.")
+
+if __name__ == "__main__":
+    main()
 
