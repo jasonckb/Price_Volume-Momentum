@@ -46,23 +46,28 @@ def format_pct_change(val):
 def main():
     st.set_page_config(page_title="Index Constituents Volume & Price Momentum by Jason Chan", layout="wide")
     st.title('Index Components Volume & Price Momentum by Jason Chan')
-    # Refresh button in the sidebar
-    if st.sidebar.button('Refresh Data'):        
+
+    if st.sidebar.button('Refresh Data'):
         st.experimental_rerun()
 
-    # Fetch the raw data only once and deep copy any data frame you retrieve for manipulation
     if 'raw_data' not in st.session_state:
         st.session_state.raw_data = load_data(excel_path)
-    
+
     processed_data = {name: fetch_and_calculate(st.session_state.raw_data[name].copy(deep=True), name) 
-                  for name in st.session_state.raw_data}
+                      for name in st.session_state.raw_data}
 
+    index_options = list(processed_data.keys())
+    st.session_state['selected_index'] = st.sidebar.selectbox(
+        'Select Index',
+        index_options,
+        index=index_options.index(st.session_state.get('selected_index', 'HSI'))
+    )
 
-    index_choice = st.sidebar.selectbox('Select Index', list(processed_data.keys()))
-    df_display = processed_data[index_choice].copy(deep=True)  # Ensuring another deep copy
-
-     # Convert 'Today Pct Change' to numeric, handling any non-numeric values gracefully
+    df_display = processed_data[st.session_state['selected_index']].copy(deep=True)
     df_display['Today Pct Change'] = pd.to_numeric(df_display['Today Pct Change'].str.rstrip('%'), errors='coerce')
+
+    # Use st.session_state['selected_index'] directly in the f-string for the title
+    plot_title = f"{st.session_state['selected_index']} Volume Ratio: Today VS.10 Days Average"
 
     # After conversion, calculate the max percentage change
     max_pct_change = df_display['Today Pct Change'].max()
