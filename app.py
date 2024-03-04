@@ -56,8 +56,8 @@ def main():
     processed_data = {name: fetch_and_calculate(st.session_state.raw_data[name].copy(deep=True), name) 
                       for name in st.session_state.raw_data}
 
+    # Use st.session_state directly for dropdown and title to avoid NameError
     index_options = list(processed_data.keys())
-    # Directly update and use st.session_state for index choice to maintain consistency
     st.session_state['selected_index'] = st.sidebar.selectbox(
         'Select Index',
         index_options,
@@ -67,8 +67,10 @@ def main():
     df_display = processed_data[st.session_state['selected_index']].copy(deep=True)
     df_display['Today Pct Change'] = pd.to_numeric(df_display['Today Pct Change'].str.rstrip('%'), errors='coerce')
 
-    # Here we use st.session_state['selected_index'] directly in the title
-    title_text = f"{st.session_state['selected_index']} Volume Ratio: Today VS.10 Days Average"
+    # Construct the title using the value from st.session_state directly
+    plot_title = f"{st.session_state['selected_index']} Volume Ratio: Today VS.10 Days Average"
+    # Assuming the rest of your plotting logic follows here...
+
 
     # After conversion, calculate the max percentage change
     max_pct_change = df_display['Today Pct Change'].max()
