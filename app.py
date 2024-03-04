@@ -34,39 +34,57 @@ def main():
     st.set_page_config(page_title="Index Constituents Volume & Price Momentum", layout="wide")
     st.title('Index Components Volume & Price Momentum')
 
+    # Place the Refresh Data button in the sidebar to ensure it's always visible.
+    if st.sidebar.button('Refresh Data'):
+        # This will clear the session state and force the app to rerun.
+        st.session_state.clear()
+        st.experimental_rerun()
+
+    # Load data only if it's not already in the session state.
     if 'raw_data' not in st.session_state:
-        st.session_state.raw_data = load_data(excel_path)
+        st.session_state['raw_data'] = load_data(excel_path)
 
+    # Process data only if it's not already been processed.
+    processed_data = {name: fetch_and_calculate(st.session_state['raw_data'][name].copy(deep=True), name) 
+                      for name in st.session_state['raw_data']}
+
+    # Maintain the selected index in session state to persist the user's choice.
     if 'selected_index' not in st.session_state:
-        st.session_state.selected_index = 'HSI'
+        st.session_state['selected_index'] = 'HSI'
 
-    processed_data = {name: fetch_and_calculate(st.session_state.raw_data[name].copy(deep=True), name) 
-                      for name in st.session_state.raw_data}
-
+    # Present index selection options based on available data.
     index_options = list(processed_data.keys())
-    # The selected index is set from session state and updated upon user interaction
-    st.session_state.selected_index = st.sidebar.selectbox(
+    st.session_state['selected_index'] = st.sidebar.selectbox(
         'Select Index',
         index_options,
-        index=index_options.index(st.session_state.selected_index)
+        index=index_options.index(st.session_state['selected_index'])
     )
 
-    df_display = processed_data[st.session_state.selected_index].copy(deep=True)
-
+    # Display the selected index data.
+    df_display = processed_data[st.session_state['selected_index']].copy(deep=True)
+    
+    # Ensure 'Today Pct Change' is appropriately formatted.
     if 'Today Pct Change' in df_display.columns:
         df_display['Today Pct Change'] = pd.to_numeric(df_display['Today Pct Change'].astype(str).str.rstrip('%'), errors='coerce')
 
-    def color_scale(val):
-        if val > 5: return 'red'
-        elif val > 4: return 'Crimson'
-        elif val > 3: return 'pink'
-        elif val > 2: return 'brown'
-        elif val > 1: return 'orange'
-        else: return 'gray'
-
-    df_display['Volume Ratio'] = pd.to_numeric(df_display['Volume Ratio'], errors='coerce').fillna(0)
+    # Apply color scaling based on 'Volume Ratio'.
     df_display['Color'] = df_display['Volume Ratio'].apply(color_scale)
 
+    # Generate and display the scatter plot.
+    fig = generate_plot(df_display, st.session_state['selected_index'])
+    st.plotly_chart(fig)
+
+def color_scale(val):
+    # Define the color scale for the plot.
+    if val > 5: return 'red'
+    elif val > 4: return 'Crimson'
+    elif val > 3: return 'pink'
+    elif val > 2: return 'brown'
+    elif val > 1: return 'orange'
+    else: return 'gray'
+
+def generate_plot(df_display, index_choice):
+    # Create and return the plot based on the data frame and selected index.
     fig = px.scatter(
         df_display, 
         x='Volume Ratio', 
@@ -75,7 +93,7 @@ def main():
         hover_data=['Name', 'Code', 'Today Pct Change', 'Volume Ratio'],
         color='Color', 
         color_discrete_map="identity",
-        title=f"{st.session_state.selected_index} Volume Ratio: Today VS.10 Days Average", 
+        title=f"{index_choice} Volume Ratio: Today VS.10 Days Average", 
         height=800, 
         width=1000
     )
@@ -89,10 +107,11 @@ def main():
         yaxis=dict(title_font=dict(color='white'), tickfont=dict(color='white'))
     )
 
-    st.plotly_chart(fig)
+    return fig
 
 if __name__ == "__main__":
     main()
+
 
 
 
