@@ -57,6 +57,7 @@ def main():
                       for name in st.session_state.raw_data}
 
     index_options = list(processed_data.keys())
+    # Directly update and use st.session_state for index choice to maintain consistency
     st.session_state['selected_index'] = st.sidebar.selectbox(
         'Select Index',
         index_options,
@@ -64,15 +65,13 @@ def main():
     )
 
     df_display = processed_data[st.session_state['selected_index']].copy(deep=True)
-
-    # Ensure 'Today Pct Change' is treated as numeric, removing any non-numeric characters like '%'
     df_display['Today Pct Change'] = pd.to_numeric(df_display['Today Pct Change'].str.rstrip('%'), errors='coerce')
 
-    # Compute max and min with numeric validation
-    min_pct_change = df_display['Today Pct Change'].min()
+    # Here we use st.session_state['selected_index'] directly in the title
+    title_text = f"{st.session_state['selected_index']} Volume Ratio: Today VS.10 Days Average"
+
+    # After conversion, calculate the max percentage change
     max_pct_change = df_display['Today Pct Change'].max()
-    
-    # Apply padding only if max_pct_change is a number
     if max_pct_change is not None:
         max_pct_change *= 1.1
 
