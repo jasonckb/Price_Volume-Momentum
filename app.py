@@ -48,7 +48,7 @@ def main():
     st.title('Index Components Volume & Price Momentum by Jason Chan')
     # Refresh button in the sidebar
     if st.sidebar.button('Clear Cache & Refresh Data'):
-        st.legacy_caching.clear_cache()
+        st.caching.clear_cache()
         st.experimental_rerun()
 
     # Fetch the raw data only once and deep copy any data frame you retrieve for manipulation
