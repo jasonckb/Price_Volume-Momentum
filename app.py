@@ -61,25 +61,27 @@ def main():
     if 'raw_data' not in st.session_state:
         st.session_state.raw_data = load_data(excel_path)
 
-    processed_data = {
-        name: fetch_and_calculate(st.session_state.raw_data[name].copy(deep=True), name)
-        for name in st.session_state.raw_data
+    if 'processed_data' not in st.session_state:
+        st.session_state.processed_data = {
+            name: fetch_and_calculate(st.session_state.raw_data[name].copy(deep=True), name)
+            for name in st.session_state.raw_data
     }
 
     # Index selection
     index_choice = st.sidebar.selectbox(
         'Select Index',
-        list(processed_data.keys()),
-        index=list(processed_data.keys()).index(st.session_state.get('selected_index', 'HSI'))
+        list(st.session_state.processed_data.keys()),
+        index=list(st.session_state.processed_data.keys()).index(st.session_state.get('selected_index', 'HSI'))
     )
     st.session_state['selected_index'] = index_choice  # Store the current selection
 
     # Display the data
-    df_display = processed_data[index_choice].copy(deep=True)
+    df_display = st.session_state.processed_data[index_choice].copy(deep=True)
     df_display['Today Pct Change'] = pd.to_numeric(df_display['Today Pct Change'].astype(str).str.rstrip('%'), errors='coerce')
     df_display['Color'] = df_display['Volume Ratio'].apply(color_scale)
     fig = generate_plot(df_display, index_choice)
     st.plotly_chart(fig)
+
 
 def generate_plot(df_display, index_choice):
     fig = px.scatter(
