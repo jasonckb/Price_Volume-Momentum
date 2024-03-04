@@ -57,6 +57,7 @@ def main():
                       for name in st.session_state.raw_data}
 
     index_options = list(processed_data.keys())
+    # Ensure the selected index is retrieved from session state and used in selectbox
     st.session_state['selected_index'] = st.sidebar.selectbox(
         'Select Index',
         index_options,
@@ -66,7 +67,7 @@ def main():
     df_display = processed_data[st.session_state['selected_index']].copy(deep=True)
     df_display['Today Pct Change'] = pd.to_numeric(df_display['Today Pct Change'].str.rstrip('%'), errors='coerce')
 
-    # Use st.session_state['selected_index'] directly in the f-string for the title
+    # Correct the variable reference in the title string
     plot_title = f"{st.session_state['selected_index']} Volume Ratio: Today VS.10 Days Average"
 
     # After conversion, calculate the max percentage change
