@@ -34,24 +34,28 @@ def main():
     st.set_page_config(page_title="Index Constituents Volume & Price Momentum", layout="wide")
     st.title('Index Components Volume & Price Momentum')
 
-    if st.sidebar.button('Refresh Data'):        
-        st.experimental_rerun()
-
     if 'raw_data' not in st.session_state:
         st.session_state.raw_data = load_data(excel_path)
-    
+
+    if 'selected_index' not in st.session_state:
+        st.session_state.selected_index = 'HSI'
+
     processed_data = {name: fetch_and_calculate(st.session_state.raw_data[name].copy(deep=True), name) 
                       for name in st.session_state.raw_data}
 
-    index_choice = st.sidebar.selectbox('Select Index', list(processed_data.keys()))
-    df_display = processed_data[index_choice].copy(deep=True)
+    index_options = list(processed_data.keys())
+    # The selected index is set from session state and updated upon user interaction
+    st.session_state.selected_index = st.sidebar.selectbox(
+        'Select Index',
+        index_options,
+        index=index_options.index(st.session_state.selected_index)
+    )
 
-    # Ensure the column is treated as a string before applying string methods
-    # Then convert 'Today Pct Change' to numeric, safely handling non-numeric values
+    df_display = processed_data[st.session_state.selected_index].copy(deep=True)
+
     if 'Today Pct Change' in df_display.columns:
         df_display['Today Pct Change'] = pd.to_numeric(df_display['Today Pct Change'].astype(str).str.rstrip('%'), errors='coerce')
 
-    # Define color_scale function to map values to colors
     def color_scale(val):
         if val > 5: return 'red'
         elif val > 4: return 'Crimson'
@@ -60,11 +64,9 @@ def main():
         elif val > 1: return 'orange'
         else: return 'gray'
 
-    # Apply color scale and handle possible NaN in 'Volume Ratio'
     df_display['Volume Ratio'] = pd.to_numeric(df_display['Volume Ratio'], errors='coerce').fillna(0)
     df_display['Color'] = df_display['Volume Ratio'].apply(color_scale)
 
-    # Create scatter plot
     fig = px.scatter(
         df_display, 
         x='Volume Ratio', 
@@ -73,7 +75,7 @@ def main():
         hover_data=['Name', 'Code', 'Today Pct Change', 'Volume Ratio'],
         color='Color', 
         color_discrete_map="identity",
-        title=f'{index_choice} Volume Ratio: Today VS.10 Days Average', 
+        title=f"{st.session_state.selected_index} Volume Ratio: Today VS.10 Days Average", 
         height=800, 
         width=1000
     )
@@ -88,7 +90,6 @@ def main():
     )
 
     st.plotly_chart(fig)
-    
 
 if __name__ == "__main__":
     main()
