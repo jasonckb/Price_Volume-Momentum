@@ -36,9 +36,8 @@ def fetch_and_calculate(df, index_name):
             avg_volume_10d = hist['Volume'][:-1].mean()
             df.at[index, 'Today Pct Change'] = round(((today_data['Close'] - today_data['Open']) / today_data['Open']) * 100, 2)
             df.at[index, 'Volume Ratio'] = round(today_data['Volume'] / avg_volume_10d, 2)
-    
-    return df
 
+    return df
 
 def color_scale(val):
     if val > 5: return 'red'
@@ -57,25 +56,29 @@ def main():
         st.session_state.clear()  # Clear session state to force data reload
         st.experimental_rerun()
 
+    # Index selection
+    if 'selected_index' not in st.session_state:
+        st.session_state.selected_index = 'HSI'
+
+    index_choice = st.sidebar.selectbox(
+        'Select Index',
+        ['HSI', 'HSTECH', 'HSCEI', 'SP 500'],
+        index=['HSI', 'HSTECH', 'HSCEI', 'SP 500'].index(st.session_state.selected_index)
+    )
+    st.session_state.selected_index = index_choice
+
     # Load and process data
     if 'raw_data' not in st.session_state:
         st.session_state.raw_data = load_data(excel_path)
 
-    processed_data = {
-        name: fetch_and_calculate(st.session_state.raw_data[name].copy(deep=True), name)
-        for name in st.session_state.raw_data
-    }
-
-    # Index selection
-    index_choice = st.sidebar.selectbox(
-        'Select Index',
-        list(processed_data.keys()),
-        index=list(processed_data.keys()).index(st.session_state.get('selected_index', 'HSI'))
-    )
-    st.session_state['selected_index'] = index_choice  # Store the current selection
+    if 'processed_data' not in st.session_state:
+        st.session_state.processed_data = {
+            name: fetch_and_calculate(st.session_state.raw_data[name].copy(deep=True), name)
+            for name in st.session_state.raw_data
+        }
 
     # Display the data
-    df_display = processed_data[index_choice].copy(deep=True)
+    df_display = st.session_state.processed_data[index_choice].copy(deep=True)
     df_display['Today Pct Change'] = pd.to_numeric(df_display['Today Pct Change'].astype(str).str.rstrip('%'), errors='coerce')
     df_display['Color'] = df_display['Volume Ratio'].apply(color_scale)
     fig = generate_plot(df_display, index_choice)
