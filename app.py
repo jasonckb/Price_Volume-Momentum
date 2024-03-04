@@ -10,13 +10,13 @@ import datetime
 # Dropbox direct download link
 excel_path = 'https://www.dropbox.com/scl/fi/nw5fpges55aff7x5q3gh9/Index-Weight.xlsx?rlkey=rxdopdklplz15jk97zu2sual5&dl=1'
 
-@st.cache_data(show_spinner=False)
+@st.cache(show_spinner=False)
 def load_data(excel_path):
     sheet_names = ['HSI', 'HSTECH', 'HSCEI','SP 500']
     dtype = {'Code': str}
     return {name: pd.read_excel(excel_path, sheet_name=name, dtype=dtype) for name in sheet_names}
 
-@st.cache_data(show_spinner=False)
+@st.cache(show_spinner=False)
 def fetch_and_calculate(df, index_name):
     for index, row in df.iterrows():
         # Adjust the stock code format based on the index
