@@ -53,7 +53,6 @@ def main():
 
     # Refresh button in the sidebar
     if st.sidebar.button('Refresh Data'):
-        # No need to update selected_index here; it's maintained in session_state
         st.experimental_rerun()
 
     # Data fetching and processing
@@ -75,7 +74,7 @@ def main():
     for name, df in processed_data.items():
         df['Today Pct Change'] = df['Today Pct Change'].apply(format_pct_change)
 
-    # After conversion, calculate the max percentage change
+    # Safely compute max_pct_change with a check for None
     max_pct_change = df_display['Today Pct Change'].max()
     if max_pct_change is not None:
         max_pct_change *= 1.1
