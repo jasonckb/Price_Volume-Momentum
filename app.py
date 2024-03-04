@@ -40,55 +40,7 @@ def fetch_and_calculate(df, index_name):
     return df
 
 
-def format_pct_change(val):
-    return f"{val}%" if pd.notnull(val) else ""
-
-def main():
-    st.set_page_config(page_title="Index Constituents Volume & Price Momentum", layout="wide")
-    st.title('Index Components Volume & Price Momentum')
-
-    # Place the Refresh Data button in the sidebar to ensure it's always visible.
-    if st.sidebar.button('Refresh Data'):
-        # This will clear the session state and force the app to rerun.
-        st.session_state.clear()
-        st.experimental_rerun()
-
-    # Load data only if it's not already in the session state.
-    if 'raw_data' not in st.session_state:
-        st.session_state['raw_data'] = load_data(excel_path)
-
-    # Process data only if it's not already been processed.
-    processed_data = {name: fetch_and_calculate(st.session_state['raw_data'][name].copy(deep=True), name) 
-                      for name in st.session_state['raw_data']}
-
-    # Maintain the selected index in session state to persist the user's choice.
-    if 'selected_index' not in st.session_state:
-        st.session_state['selected_index'] = 'HSI'
-
-    # Present index selection options based on available data.
-    index_options = list(processed_data.keys())
-    st.session_state['selected_index'] = st.sidebar.selectbox(
-        'Select Index',
-        index_options,
-        index=index_options.index(st.session_state['selected_index'])
-    )
-
-    # Display the selected index data.
-    df_display = processed_data[st.session_state['selected_index']].copy(deep=True)
-    
-    # Ensure 'Today Pct Change' is appropriately formatted.
-    if 'Today Pct Change' in df_display.columns:
-        df_display['Today Pct Change'] = pd.to_numeric(df_display['Today Pct Change'].astype(str).str.rstrip('%'), errors='coerce')
-
-    # Apply color scaling based on 'Volume Ratio'.
-    df_display['Color'] = df_display['Volume Ratio'].apply(color_scale)
-
-    # Generate and display the scatter plot.
-    fig = generate_plot(df_display, st.session_state['selected_index'])
-    st.plotly_chart(fig)
-
 def color_scale(val):
-    # Define the color scale for the plot.
     if val > 5: return 'red'
     elif val > 4: return 'Crimson'
     elif val > 3: return 'pink'
@@ -96,8 +48,40 @@ def color_scale(val):
     elif val > 1: return 'orange'
     else: return 'gray'
 
+def main():
+    st.set_page_config(page_title="Index Constituents Volume & Price Momentum", layout="wide")
+    st.title('Index Components Volume & Price Momentum')
+
+    # Refresh Data button
+    if st.sidebar.button('Refresh Data'):
+        st.session_state.clear()  # Clear session state to force data reload
+        st.experimental_rerun()
+
+    # Load and process data
+    if 'raw_data' not in st.session_state:
+        st.session_state.raw_data = load_data(excel_path)
+
+    processed_data = {
+        name: fetch_and_calculate(st.session_state.raw_data[name].copy(deep=True), name)
+        for name in st.session_state.raw_data
+    }
+
+    # Index selection
+    index_choice = st.sidebar.selectbox(
+        'Select Index',
+        list(processed_data.keys()),
+        index=list(processed_data.keys()).index(st.session_state.get('selected_index', 'HSI'))
+    )
+    st.session_state['selected_index'] = index_choice  # Store the current selection
+
+    # Display the data
+    df_display = processed_data[index_choice].copy(deep=True)
+    df_display['Today Pct Change'] = pd.to_numeric(df_display['Today Pct Change'].astype(str).str.rstrip('%'), errors='coerce')
+    df_display['Color'] = df_display['Volume Ratio'].apply(color_scale)
+    fig = generate_plot(df_display, index_choice)
+    st.plotly_chart(fig)
+
 def generate_plot(df_display, index_choice):
-    # Create and return the plot based on the data frame and selected index.
     fig = px.scatter(
         df_display, 
         x='Volume Ratio', 
@@ -106,11 +90,10 @@ def generate_plot(df_display, index_choice):
         hover_data=['Name', 'Code', 'Today Pct Change', 'Volume Ratio'],
         color='Color', 
         color_discrete_map="identity",
-        title=f"{index_choice} Volume Ratio: Today VS.10 Days Average", 
+        title=f"{index_choice} Volume Ratio: Today VS.10 Days Average",
         height=800, 
         width=1000
     )
-
     fig.update_xaxes(type='log' if df_display['Volume Ratio'].min() > 0 else 'linear')
     fig.update_layout(
         plot_bgcolor='black',
@@ -119,7 +102,6 @@ def generate_plot(df_display, index_choice):
         xaxis=dict(title_font=dict(color='white'), tickfont=dict(color='white')),
         yaxis=dict(title_font=dict(color='white'), tickfont=dict(color='white'))
     )
-
     return fig
 
 if __name__ == "__main__":
