@@ -47,37 +47,33 @@ def main():
     st.set_page_config(page_title="Index Constituents Volume & Price Momentum by Jason Chan", layout="wide")
     st.title('Index Components Volume & Price Momentum by Jason Chan')
 
-    # Initialize or maintain the selected index in the session state
-    if 'selected_index' not in st.session_state:
-        st.session_state['selected_index'] = 'HSI'
-
-    # Refresh button in the sidebar
     if st.sidebar.button('Refresh Data'):
         st.experimental_rerun()
 
-    # Data fetching and processing
     if 'raw_data' not in st.session_state:
         st.session_state.raw_data = load_data(excel_path)
     
     processed_data = {name: fetch_and_calculate(st.session_state.raw_data[name].copy(deep=True), name) 
                       for name in st.session_state.raw_data}
 
-    # Restore the selected index after refresh or change
     index_options = list(processed_data.keys())
-    st.session_state['selected_index'] = st.sidebar.selectbox(
-        'Select Index',
-        index_options,
-        index=index_options.index(st.session_state['selected_index'])
-    )
-    df_display = processed_data[st.session_state['selected_index']].copy(deep=True)
+    selected_index = st.sidebar.selectbox('Select Index', index_options, index=index_options.index(st.session_state.get('selected_index', 'HSI')))
+    st.session_state['selected_index'] = selected_index
 
-    for name, df in processed_data.items():
-        df['Today Pct Change'] = df['Today Pct Change'].apply(format_pct_change)
+    df_display = processed_data[selected_index].copy(deep=True)
 
-    # Safely compute max_pct_change with a check for None
+    # Ensuring the conversion handles non-numeric and NaN values
+    df_display['Today Pct Change'] = pd.to_numeric(df_display['Today Pct Change'].str.rstrip('%'), errors='coerce')
+
+    # Compute max_pct_change with a check to ensure it's numeric
     max_pct_change = df_display['Today Pct Change'].max()
-    if max_pct_change is not None:
+    if pd.notnull(max_pct_change):
         max_pct_change *= 1.1
+    else:
+        max_pct_change = 0  # or set it to a default or handle however you deem appropriate
+
+    # Continue with your data display or additional processing...
+
 
     
     def color_scale(val):
