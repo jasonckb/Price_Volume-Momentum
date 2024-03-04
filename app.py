@@ -1,7 +1,8 @@
 import streamlit as st
 import pandas as pd
 import yfinance as yf
-import plotly.express as px
+import plotly.graph_objs as go
+from datetime import datetime, timedelta  # Make sure datetime and timedelta are imported
 
 # Define the Dropbox link for the Excel file
 excel_path = 'https://www.dropbox.com/scl/fi/nw5fpges55aff7x5q3gh9/Index-Weight.xlsx?rlkey=rxdopdklplz15jk97zu2sual5&dl=1'
