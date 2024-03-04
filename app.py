@@ -56,25 +56,25 @@ def main():
     processed_data = {name: fetch_and_calculate(st.session_state.raw_data[name].copy(deep=True), name) 
                       for name in st.session_state.raw_data}
 
-    # Store and retrieve the selected index in/from session state
-    if 'selected_index' not in st.session_state:
-        st.session_state['selected_index'] = 'HSI'
-
+    index_options = list(processed_data.keys())
     st.session_state['selected_index'] = st.sidebar.selectbox(
         'Select Index',
-        list(processed_data.keys()),
-        index=list(processed_data.keys()).index(st.session_state['selected_index'])
+        index_options,
+        index=index_options.index(st.session_state.get('selected_index', 'HSI'))
     )
 
     df_display = processed_data[st.session_state['selected_index']].copy(deep=True)
 
-    for name, df in processed_data.items():
-        df['Today Pct Change'] = df['Today Pct Change'].apply(format_pct_change)
+    # Ensure 'Today Pct Change' is treated as numeric, removing any non-numeric characters like '%'
+    df_display['Today Pct Change'] = pd.to_numeric(df_display['Today Pct Change'].str.rstrip('%'), errors='coerce')
 
-    # After conversion, calculate the max percentage change
-    #max_pct_change = df_display['Today Pct Change'].max()
-    #if max_pct_change is not None:
-    #    max_pct_change *= 1.1
+    # Compute max and min with numeric validation
+    min_pct_change = df_display['Today Pct Change'].min()
+    max_pct_change = df_display['Today Pct Change'].max()
+    
+    # Apply padding only if max_pct_change is a number
+    if max_pct_change is not None:
+        max_pct_change *= 1.1
 
     
     def color_scale(val):
