@@ -72,9 +72,9 @@ def main():
         df['Today Pct Change'] = df['Today Pct Change'].apply(format_pct_change)
 
     # After conversion, calculate the max percentage change
-    max_pct_change = df_display['Today Pct Change'].max()
-    if max_pct_change is not None:
-        max_pct_change *= 1.1
+    #max_pct_change = df_display['Today Pct Change'].max()
+    #if max_pct_change is not None:
+    #    max_pct_change *= 1.1
 
     
     def color_scale(val):
