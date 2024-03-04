@@ -1,35 +1,47 @@
 import streamlit as st
 import pandas as pd
 import yfinance as yf
+import plotly.express as px
 import plotly.graph_objs as go
-from datetime import datetime, timedelta  # Make sure datetime and timedelta are imported
+import openpyxl
+import datetime
 
-# Define the Dropbox link for the Excel file
+#excel_path = 'C:/Users/user/Desktop/MyScripts/Index Bubble Chart/Index Weight.xlsx'
+# Dropbox direct download link
 excel_path = 'https://www.dropbox.com/scl/fi/nw5fpges55aff7x5q3gh9/Index-Weight.xlsx?rlkey=rxdopdklplz15jk97zu2sual5&dl=1'
 
 @st.cache(show_spinner=False, allow_output_mutation=True)
-def load_data(excel_path):
-    sheet_names = ['HSI', 'HSTECH', 'HSCEI', 'SP 500']
+def load_data(excel_path, force_reload=False):
+    sheet_names = ['HSI', 'HSTECH', 'HSCEI','SP 500']
     dtype = {'Code': str}
     return {name: pd.read_excel(excel_path, sheet_name=name, dtype=dtype) for name in sheet_names}
 
 @st.cache(show_spinner=False, allow_output_mutation=True)
 def fetch_and_calculate(df, index_name):
     for index, row in df.iterrows():
+        # Adjust the stock code format based on the index
         if index_name == 'SP 500':
-            stock_code = row['Code']
+            stock_code = row['Code']  # S&P 500 codes should be used as is
         else:
-            stock_code = f"{row['Code'].zfill(4)}.HK"
+            stock_code = f"{row['Code'].zfill(4)}.HK"  # For Hong Kong stocks, pad and add suffix
+
         stock = yf.Ticker(stock_code)
         hist = stock.history(period="11d")
+
         if hist.empty:
-            df.at[index, 'Today Pct Change'], df.at[index, 'Volume Ratio'] = None, None
+            df.at[index, 'Today Pct Change'] = None
+            df.at[index, 'Volume Ratio'] = None
         else:
             today_data = hist.iloc[-1]
             avg_volume_10d = hist['Volume'][:-1].mean()
             df.at[index, 'Today Pct Change'] = round(((today_data['Close'] - today_data['Open']) / today_data['Open']) * 100, 2)
             df.at[index, 'Volume Ratio'] = round(today_data['Volume'] / avg_volume_10d, 2)
+    
     return df
+
+
+def format_pct_change(val):
+    return f"{val}%" if pd.notnull(val) else ""
 
 def main():
     st.set_page_config(page_title="Index Constituents Volume & Price Momentum", layout="wide")
@@ -112,8 +124,6 @@ def generate_plot(df_display, index_choice):
 
 if __name__ == "__main__":
     main()
-
-
 
 
 def plot_candlestick(stock_code):
