@@ -2,50 +2,37 @@ import streamlit as st
 import pandas as pd
 import yfinance as yf
 import plotly.express as px
-import plotly.graph_objs as go
-import openpyxl
-import datetime
 
-#excel_path = 'C:/Users/user/Desktop/MyScripts/Index Bubble Chart/Index Weight.xlsx'
-# Dropbox direct download link
+# Define the Dropbox link for the Excel file
 excel_path = 'https://www.dropbox.com/scl/fi/nw5fpges55aff7x5q3gh9/Index-Weight.xlsx?rlkey=rxdopdklplz15jk97zu2sual5&dl=1'
 
 @st.cache(show_spinner=False, allow_output_mutation=True)
-def load_data(excel_path, force_reload=False):
-    sheet_names = ['HSI', 'HSTECH', 'HSCEI','SP 500']
+def load_data(excel_path):
+    sheet_names = ['HSI', 'HSTECH', 'HSCEI', 'SP 500']
     dtype = {'Code': str}
     return {name: pd.read_excel(excel_path, sheet_name=name, dtype=dtype) for name in sheet_names}
 
 @st.cache(show_spinner=False, allow_output_mutation=True)
 def fetch_and_calculate(df, index_name):
     for index, row in df.iterrows():
-        # Adjust the stock code format based on the index
         if index_name == 'SP 500':
-            stock_code = row['Code']  # S&P 500 codes should be used as is
+            stock_code = row['Code']
         else:
-            stock_code = f"{row['Code'].zfill(4)}.HK"  # For Hong Kong stocks, pad and add suffix
-
+            stock_code = f"{row['Code'].zfill(4)}.HK"
         stock = yf.Ticker(stock_code)
         hist = stock.history(period="11d")
-
         if hist.empty:
-            df.at[index, 'Today Pct Change'] = None
-            df.at[index, 'Volume Ratio'] = None
+            df.at[index, 'Today Pct Change'], df.at[index, 'Volume Ratio'] = None, None
         else:
             today_data = hist.iloc[-1]
             avg_volume_10d = hist['Volume'][:-1].mean()
             df.at[index, 'Today Pct Change'] = round(((today_data['Close'] - today_data['Open']) / today_data['Open']) * 100, 2)
             df.at[index, 'Volume Ratio'] = round(today_data['Volume'] / avg_volume_10d, 2)
-    
     return df
 
-
-def format_pct_change(val):
-    return f"{val}%" if pd.notnull(val) else ""
-
 def main():
-    st.set_page_config(page_title="Index Constituents Volume & Price Momentum by Jason Chan", layout="wide")
-    st.title('Index Components Volume & Price Momentum by Jason Chan')
+    st.set_page_config(page_title="Index Constituents Volume & Price Momentum", layout="wide")
+    st.title('Index Components Volume & Price Momentum')
 
     if st.sidebar.button('Refresh Data'):
         st.experimental_rerun()
@@ -53,116 +40,61 @@ def main():
     if 'raw_data' not in st.session_state:
         st.session_state.raw_data = load_data(excel_path)
 
-    processed_data = {name: fetch_and_calculate(st.session_state.raw_data[name].copy(deep=True), name) 
+    processed_data = {name: fetch_and_calculate(st.session_state.raw_data[name].copy(deep=True), name)
                       for name in st.session_state.raw_data}
 
-    index_options = list(processed_data.keys())
-    # Ensure the selected index is retrieved from session state and used in selectbox
-    st.session_state['selected_index'] = st.sidebar.selectbox(
+    # Initialize or update the selected index in session state
+    if 'selected_index' not in st.session_state:
+        st.session_state.selected_index = 'HSI'
+
+    # Update session state based on user selection
+    st.session_state.selected_index = st.sidebar.selectbox(
         'Select Index',
-        index_options,
-        index=index_options.index(st.session_state.get('selected_index', 'HSI'))
+        list(processed_data.keys()),
+        index=list(processed_data.keys()).index(st.session_state.selected_index)
     )
 
-    df_display = processed_data[st.session_state['selected_index']].copy(deep=True)
+    df_display = processed_data[st.session_state.selected_index].copy(deep=True)
     df_display['Today Pct Change'] = pd.to_numeric(df_display['Today Pct Change'].str.rstrip('%'), errors='coerce')
 
-    # Correct the variable reference in the title string
-    plot_title = f"{st.session_state['selected_index']} Volume Ratio: Today VS.10 Days Average"
-
-    # After conversion, calculate the max percentage change
-    max_pct_change = df_display['Today Pct Change'].max()
-    if max_pct_change is not None:
-        max_pct_change *= 1.1
-
-    
+    # Color scale function
     def color_scale(val):
-        try:
-        # Convert to float, if conversion fails, it will go to except block
-            val = float(val)
-        except (ValueError, TypeError):
-        # Return a default color if value is not a number or NaN
-            return 'gray'
+        if val > 5: return 'red'
+        elif val > 4: return 'Crimson'
+        elif val > 3: return 'pink'
+        elif val > 2: return 'brown'
+        elif val > 1: return 'orange'
+        else: return 'blue'
     
-    # Check if the value is NaN (after conversion attempt)
-        if pd.isna(val):
-            return 'gray'
-
-    # Apply color scale based on the value
-        if val > 5:
-            return 'red'
-        elif val > 4:
-            return 'Crimson'
-        elif val > 3:
-            return 'pink'
-        elif val > 2:
-            return 'brown'
-        elif val > 1:
-            return 'orange'
-        else:
-            return 'gray'
-
-
-    # Clean or preprocess 'Volume Ratio' to handle NaNs and non-numeric values
-    df_display['Volume Ratio'] = pd.to_numeric(df_display['Volume Ratio'], errors='coerce').fillna(0)
-
-# Now it's safe to apply 'color_scale'
     df_display['Color'] = df_display['Volume Ratio'].apply(color_scale)
 
-
-    # Set the y-axis to include negative returns
-    min_pct_change = df_display['Today Pct Change'].min()
-    max_pct_change = df_display['Today Pct Change'].max() * 1.1  # Adjusted for padding
-
-    fig = px.scatter(df_display, x='Volume Ratio', y='Today Pct Change', size='Weight',
-                     hover_data=['Name', 'Code', 'Today Pct Change', 'Volume Ratio'],
-                     color='Color', color_discrete_map="identity",
-                     title=f'{index_choice} Volume Ratio: Today VS.10 Days Average', height=800, width=1000)
-
-    # Apply a logarithmic scale to the x-axis if all values are positive
-    if df_display['Volume Ratio'].min() > 0:
-        fig.update_xaxes(type='log')
-    
-    # Adjust the range of the y-axis to include negative returns
-    fig.update_xaxes(
-        zeroline=True, zerolinewidth=2, zerolinecolor='black',
-        tickfont=dict(size=16, color='black'),  # Update tick font size here
-        tickformat='0.2f'  # Formats the tick labels to float with leading zero
+    fig = px.scatter(
+        df_display,
+        x='Volume Ratio',
+        y='Today Pct Change',
+        size='Weight',
+        hover_data=['Name', 'Code', 'Today Pct Change', 'Volume Ratio'],
+        color='Color',
+        color_discrete_map="identity",
+        title=f"{st.session_state.selected_index} Volume Ratio: Today VS.10 Days Average",
+        height=800,
+        width=1000
     )
 
-    fig.update_yaxes(
-        zeroline=True, zerolinewidth=2, zerolinecolor='black',
-        tickfont=dict(size=16, color='black')  # Update tick font size here
-    )
-
-    # Update layout for axis titles
+    fig.update_xaxes(type='log' if df_display['Volume Ratio'].min() > 0 else 'linear')
     fig.update_layout(
-    xaxis_title="Volume Ratio",
-    yaxis_title="Today Pct Change",
-    font=dict(
-        family="Courier New, monospace",
-        size=18,
-        color="white"  # Changed from RebeccaPurple to white for visibility on a black background
-    ),
-    plot_bgcolor='black',  # Set plot background to black
-    paper_bgcolor='black',  # Set overall background to black
-    xaxis=dict(
-        title_font=dict(size=18, color='white'),  # Ensure title is visible on a black background
-        tickfont=dict(size=16, color='white'),  # Ensure ticks are visible
-        zeroline=True, zerolinewidth=2, zerolinecolor='white'  # Ensure zero line is visible
-    ),
-    yaxis=dict(
-        title_font=dict(size=18, color='white'),  # Ensure title is visible on a black background
-        tickfont=dict(size=16, color='white'),  # Ensure ticks are visible
-        zeroline=True, zerolinewidth=2, zerolinecolor='white'  # Ensure zero line is visible
+        plot_bgcolor='black',
+        paper_bgcolor='black',
+        font=dict(color='white'),
+        xaxis=dict(title_font=dict(color='white'), tickfont=dict(color='white')),
+        yaxis=dict(title_font=dict(color='white'), tickfont=dict(color='white'))
     )
-)
 
     st.plotly_chart(fig)
-    
 
 if __name__ == "__main__":
     main()
+
 
 
 def plot_candlestick(stock_code):
