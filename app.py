@@ -9,7 +9,7 @@ import datetime
 # Excel data path
 excel_path = 'https://www.dropbox.com/scl/fi/nw5fpges55aff7x5q3gh9/Index-Weight.xlsx?rlkey=rxdopdklplz15jk97zu2sual5&dl=1'
 
-@st.cache(show_spinner=False)
+@st.cache_data(show_spinner=False)
 def load_data(excel_path):
     sheet_names = ['HSI', 'HSTECH', 'HSCEI', 'SP 500']
     dtype = {'Code': str}
