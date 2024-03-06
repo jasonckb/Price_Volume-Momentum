@@ -38,19 +38,25 @@ def color_scale(val):
     else: return 'gray'
 
 def generate_plot(df_display, index_choice):
+    # Ensure data types are correct and handle any NaNs appropriately.
+    df_display['Volume Ratio'] = pd.to_numeric(df_display['Volume Ratio'], errors='coerce').fillna(0)
+    df_display['Today Pct Change'] = pd.to_numeric(df_display['Today Pct Change'], errors='coerce').fillna(0)
+    
+    # Create the scatter plot.
     fig = px.scatter(
-        df_display, 
-        x='Volume Ratio', 
-        y='Today Pct Change', 
+        df_display,
+        x='Volume Ratio',
+        y='Today Pct Change',
         size='Weight',
         hover_data=['Name', 'Code', 'Today Pct Change', 'Volume Ratio'],
-        color='Color', 
+        color='Color',
         color_discrete_map="identity",
         title=f"{index_choice} Volume Ratio: Today VS.10 Days Average",
-        height=800, 
+        height=800,
         width=1000
     )
 
+    # Update the layout for a black background and white text.
     fig.update_layout(
         plot_bgcolor='black',
         paper_bgcolor='black',
@@ -59,32 +65,29 @@ def generate_plot(df_display, index_choice):
         yaxis=dict(title_font=dict(color='white'), tickfont=dict(color='white'))
     )
 
-    fig.update_xaxes(type='log' if df_display['Volume Ratio'].min() > 0 else 'linear')
     return fig
 
+# Main application function.
 def main():
     st.set_page_config(page_title="Index Constituents Volume & Price Momentum", layout="wide")
     st.title('Index Components Volume & Price Momentum')
 
-    if 'raw_data' not in st.session_state:
-        st.session_state['raw_data'] = load_data(excel_path)
-    
+    # Loading and processing data...
+    # (Your existing data loading and processing logic here)
+
+    if 'processed_data' not in st.session_state or st.sidebar.button('Daily Historical Update'):
+        # Reload and process the data.
+        st.session_state['processed_data'] = {name: fetch_and_calculate(load_data(excel_path)[name].copy(), name) for name in ['HSI', 'HSTECH', 'HSCEI', 'SP 500']}
+
+    # Allow intraday data refresh without full reload.
     index_choice = st.sidebar.selectbox('Select Index', ['HSI', 'HSTECH', 'HSCEI', 'SP 500'])
     
-    if 'processed_data' not in st.session_state or st.sidebar.button('Daily Historical Update'):
-        st.session_state['processed_data'] = {
-            name: fetch_and_calculate(st.session_state['raw_data'][name].copy(), name) 
-            for name in st.session_state['raw_data']
-        }
-
     if st.sidebar.button('Intraday Refresh'):
-        st.session_state['processed_data'][index_choice] = fetch_and_calculate(
-            st.session_state['raw_data'][index_choice].copy(), index_choice)
+        # Process only the selected index.
+        st.session_state['processed_data'][index_choice] = fetch_and_calculate(load_data(excel_path)[index_choice].copy(), index_choice)
 
-    df_display = st.session_state['processed_data'][index_choice].copy()
-    df_display['Today Pct Change'] = pd.to_numeric(df_display['Today Pct Change'].astype(str).str.rstrip('%'), errors='coerce')
-    df_display['Color'] = df_display['Volume Ratio'].apply(color_scale)
-
+    # Plotting the selected data.
+    df_display = st.session_state['processed_data'][index_choice]
     fig = generate_plot(df_display, index_choice)
     st.plotly_chart(fig)
 
