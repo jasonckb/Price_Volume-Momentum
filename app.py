@@ -6,52 +6,37 @@ import plotly.graph_objs as go
 import openpyxl
 import datetime
 
-# Define the path to the Excel file.
+# Excel data path
 excel_path = 'https://www.dropbox.com/scl/fi/nw5fpges55aff7x5q3gh9/Index-Weight.xlsx?rlkey=rxdopdklplz15jk97zu2sual5&dl=1'
 
 @st.cache(show_spinner=False, allow_output_mutation=True)
-def load_data(excel_path):
-    # Load data from Excel.
+def load_historical_data(excel_path):
     sheet_names = ['HSI', 'HSTECH', 'HSCEI', 'SP 500']
     dtype = {'Code': str}
     return {name: pd.read_excel(excel_path, sheet_name=name, dtype=dtype) for name in sheet_names}
 
-def fetch_and_calculate(df, index_name, use_cache):
-    # Fetch and calculate data for the given index without caching for intraday refresh.
+def fetch_intraday_data(df, index_name):
+    # Fetch the intraday data without caching.
     for index, row in df.iterrows():
         stock_code = row['Code'] if index_name == 'SP 500' else f"{row['Code'].zfill(4)}.HK"
         stock = yf.Ticker(stock_code)
-        hist = stock.history(period="11d")
+        hist = stock.history(period="1d")  # Fetch only today's data.
 
         if not hist.empty:
             today_data = hist.iloc[-1]
-            avg_volume_10d = hist['Volume'][:-1].mean()
+            # Assume avg_volume_10d is already in the dataframe, adjust calculation logic if necessary.
             df.at[index, 'Today Pct Change'] = round(((today_data['Close'] - today_data['Open']) / today_data['Open']) * 100, 2)
-            df.at[index, 'Volume Ratio'] = round(today_data['Volume'] / avg_volume_10d, 2)
+            df.at[index, 'Volume Ratio'] = round(today_data['Volume'] / df.at[index, 'avg_volume_10d'], 2)
 
     return df
 
-def main():
-    st.set_page_config(page_title="Index Constituents Volume & Price Momentum", layout="wide")
-    st.title('Index Components Volume & Price Momentum')
-
-    if 'raw_data' not in st.session_state:
-        st.session_state.raw_data = load_data(excel_path)
-
-    index_choice = st.sidebar.selectbox('Select Index', ['HSI', 'HSTECH', 'HSCEI', 'SP 500'])
-
-    daily_update_clicked = st.sidebar.button('Daily Historical Update')
-    intraday_update_clicked = st.sidebar.button('Intraday Refresh')
-
-    # Check for cache utilization.
-    use_cache = not daily_update_clicked and not intraday_update_clicked
-
-    if daily_update_clicked or intraday_update_clicked or f'processed_data_{index_choice}' not in st.session_state:
-        st.session_state[f'processed_data_{index_choice}'] = fetch_and_calculate(st.session_state.raw_data[index_choice].copy(), index_choice, use_cache)
-
-    df_display = st.session_state[f'processed_data_{index_choice}'].copy()
-    fig = generate_plot(df_display, index_choice)
-    st.plotly_chart(fig)
+def color_scale(val):
+    if val > 5: return 'red'
+    elif val > 4: return 'Crimson'
+    elif val > 3: return 'pink'
+    elif val > 2: return 'brown'
+    elif val > 1: return 'orange'
+    else: return 'gray'
 
 def generate_plot(df_display, index_choice):
     fig = px.scatter(
@@ -78,8 +63,32 @@ def generate_plot(df_display, index_choice):
     fig.update_xaxes(type='log' if df_display['Volume Ratio'].min() > 0 else 'linear')
     return fig
 
+def main():
+    st.set_page_config(page_title="Index Constituents Volume & Price Momentum", layout="wide")
+    st.title('Index Components Volume & Price Momentum')
+
+    index_choice = st.sidebar.selectbox('Select Index', ['HSI', 'HSTECH', 'HSCEI', 'SP 500'])
+
+    if st.sidebar.button('Daily Historical Update'):
+        # Load historical data with caching.
+        st.session_state['raw_data'] = load_historical_data(excel_path)
+        st.session_state['processed_data'] = {name: st.session_state['raw_data'][name].copy() for name in st.session_state['raw_data']}
+
+    if 'raw_data' not in st.session_state or 'processed_data' not in st.session_state:
+        st.session_state['raw_data'] = load_historical_data(excel_path)
+        st.session_state['processed_data'] = {name: st.session_state['raw_data'][name].copy() for name in st.session_state['raw_data']}
+
+    if st.sidebar.button('Intraday Refresh'):
+        # Fetch and update intraday data for the selected index.
+        st.session_state['processed_data'][index_choice] = fetch_intraday_data(st.session_state['processed_data'][index_choice].copy(), index_choice)
+
+    df_display = st.session_state['processed_data'][index_choice]
+    fig = generate_plot(df_display, index_choice)
+    st.plotly_chart(fig)
+
 if __name__ == "__main__":
     main()
+
 
 def plot_candlestick(stock_code):
     # Fetch historical data
