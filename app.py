@@ -9,13 +9,20 @@ import datetime
 # Excel data path
 excel_path = 'https://www.dropbox.com/scl/fi/nw5fpges55aff7x5q3gh9/Index-Weight.xlsx?rlkey=rxdopdklplz15jk97zu2sual5&dl=1'
 
-@st.cache_data(show_spinner=False)
+@st.cache(show_spinner=False)
 def load_data(excel_path):
     sheet_names = ['HSI', 'HSTECH', 'HSCEI', 'SP 500']
     dtype = {'Code': str}
     return {name: pd.read_excel(excel_path, sheet_name=name, dtype=dtype) for name in sheet_names}
 
+def load_intraday_data(excel_path):
+    # Intraday loading function that avoids caching.
+    sheet_names = ['HSI', 'HSTECH', 'HSCEI', 'SP 500']
+    dtype = {'Code': str}
+    return {name: pd.read_excel(excel_path, sheet_name=name, dtype=dtype) for name in sheet_names}
+
 def fetch_and_calculate(df, index_name):
+    # This function remains cached for daily updates.
     for index, row in df.iterrows():
         stock_code = row['Code'] if index_name == 'SP 500' else f"{row['Code'].zfill(4)}.HK"
         stock = yf.Ticker(stock_code)
@@ -27,6 +34,21 @@ def fetch_and_calculate(df, index_name):
             df.at[index, 'Today Pct Change'] = round(((today_data['Close'] - today_data['Open']) / today_data['Open']) * 100, 2)
             df.at[index, 'Volume Ratio'] = round(today_data['Volume'] / avg_volume_10d, 2)
     
+    return df
+
+def fetch_and_calculate_intraday(df, index_name):
+    # This function is for intraday refreshes and avoids caching.
+    for index, row in df.iterrows():
+        stock_code = row['Code'] if index_name == 'SP 500' else f"{row['Code'].zfill(4)}.HK"
+        stock = yf.Ticker(stock_code)
+        hist = stock.history(period="1d")
+
+        if not hist.empty:
+            today_data = hist.iloc[-1]
+            avg_volume_10d = hist['Volume'][:-1].mean() if 'Volume Ratio' not in row else row['avg_volume_10d']
+            df.at[index, 'Today Pct Change'] = round(((today_data['Close'] - today_data['Open']) / today_data['Open']) * 100, 2)
+            df.at[index, 'Volume Ratio'] = round(today_data['Volume'] / avg_volume_10d, 2)
+
     return df
 
 def color_scale(val):
@@ -78,8 +100,10 @@ def main():
         }
 
     if st.sidebar.button('Intraday Refresh'):
-        st.session_state['processed_data'][index_choice] = fetch_and_calculate(
-            st.session_state['raw_data'][index_choice].copy(), index_choice)
+        # Use the intraday functions here without caching
+        intraday_data = load_intraday_data(excel_path)
+        st.session_state['processed_data'][index_choice] = fetch_and_calculate_intraday(
+            intraday_data[index_choice].copy(), index_choice)
 
     df_display = st.session_state['processed_data'][index_choice].copy()
     df_display['Today Pct Change'] = pd.to_numeric(df_display['Today Pct Change'].astype(str).str.rstrip('%'), errors='coerce')
@@ -90,7 +114,6 @@ def main():
 
 if __name__ == "__main__":
     main()
-
 
 def plot_candlestick(stock_code):
     # Fetch historical data
