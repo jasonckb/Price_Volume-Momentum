@@ -9,6 +9,7 @@ import datetime
 # Excel data path
 excel_path = 'https://www.dropbox.com/scl/fi/nw5fpges55aff7x5q3gh9/Index-Weight.xlsx?rlkey=rxdopdklplz15jk97zu2sual5&dl=1'
 
+@st.cache_data(show_spinner=False)
 def load_data(excel_path):
     sheet_names = ['HSI', 'HSTECH', 'HSCEI', 'SP 500']
     dtype = {'Code': str}
@@ -65,25 +66,31 @@ def main():
     st.set_page_config(page_title="Index Constituents Volume & Price Momentum", layout="wide")
     st.title('Index Components Volume & Price Momentum')
 
+    if st.sidebar.button('Daily Historical Update'):
+        # Force reload by changing the cache key
+        st.session_state['raw_data'] = load_data(excel_path, force_reload=True)
+
+    # Load data if not already loaded
     if 'raw_data' not in st.session_state:
         st.session_state['raw_data'] = load_data(excel_path)
-    
+
+    # Regular index and data processing
     index_choice = st.sidebar.selectbox('Select Index', ['HSI', 'HSTECH', 'HSCEI', 'SP 500'])
     
-    if 'processed_data' not in st.session_state or st.sidebar.button('Daily Historical Update'):
+    # Intraday refresh should update data without clearing cache
+    if st.sidebar.button('Intraday Refresh'):
+        st.session_state['processed_data'][index_choice] = fetch_and_calculate(
+            st.session_state['raw_data'][index_choice].copy(), index_choice)
+
+    # Check if processed data exists and process if not
+    if 'processed_data' not in st.session_state:
         st.session_state['processed_data'] = {
             name: fetch_and_calculate(st.session_state['raw_data'][name].copy(), name) 
             for name in st.session_state['raw_data']
         }
 
-    if st.sidebar.button('Intraday Refresh'):
-        st.session_state['processed_data'][index_choice] = fetch_and_calculate(
-            st.session_state['raw_data'][index_choice].copy(), index_choice)
-
+    # Visualization
     df_display = st.session_state['processed_data'][index_choice].copy()
-    df_display['Today Pct Change'] = pd.to_numeric(df_display['Today Pct Change'].astype(str).str.rstrip('%'), errors='coerce')
-    df_display['Color'] = df_display['Volume Ratio'].apply(color_scale)
-
     fig = generate_plot(df_display, index_choice)
     st.plotly_chart(fig)
 
