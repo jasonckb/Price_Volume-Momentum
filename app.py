@@ -9,25 +9,24 @@ import datetime
 # Excel data path
 excel_path = 'https://www.dropbox.com/scl/fi/nw5fpges55aff7x5q3gh9/Index-Weight.xlsx?rlkey=rxdopdklplz15jk97zu2sual5&dl=1'
 
-@st.cache(show_spinner=False, allow_output_mutation=True)
-def load_historical_data(excel_path):
+@st.cache_data(show_spinner=False)
+def load_data(excel_path):
     sheet_names = ['HSI', 'HSTECH', 'HSCEI', 'SP 500']
     dtype = {'Code': str}
     return {name: pd.read_excel(excel_path, sheet_name=name, dtype=dtype) for name in sheet_names}
 
-def fetch_intraday_data(df, index_name):
-    # Fetch the intraday data without caching.
+def fetch_and_calculate(df, index_name):
     for index, row in df.iterrows():
         stock_code = row['Code'] if index_name == 'SP 500' else f"{row['Code'].zfill(4)}.HK"
         stock = yf.Ticker(stock_code)
-        hist = stock.history(period="1d")  # Fetch only today's data.
+        hist = stock.history(period="11d")
 
         if not hist.empty:
             today_data = hist.iloc[-1]
-            # Assume avg_volume_10d is already in the dataframe, adjust calculation logic if necessary.
+            avg_volume_10d = hist['Volume'][:-1].mean()
             df.at[index, 'Today Pct Change'] = round(((today_data['Close'] - today_data['Open']) / today_data['Open']) * 100, 2)
-            df.at[index, 'Volume Ratio'] = round(today_data['Volume'] / df.at[index, 'avg_volume_10d'], 2)
-
+            df.at[index, 'Volume Ratio'] = round(today_data['Volume'] / avg_volume_10d, 2)
+    
     return df
 
 def color_scale(val):
@@ -67,22 +66,25 @@ def main():
     st.set_page_config(page_title="Index Constituents Volume & Price Momentum", layout="wide")
     st.title('Index Components Volume & Price Momentum')
 
+    if 'raw_data' not in st.session_state:
+        st.session_state['raw_data'] = load_data(excel_path)
+    
     index_choice = st.sidebar.selectbox('Select Index', ['HSI', 'HSTECH', 'HSCEI', 'SP 500'])
-
-    if st.sidebar.button('Daily Historical Update'):
-        # Load historical data with caching.
-        st.session_state['raw_data'] = load_historical_data(excel_path)
-        st.session_state['processed_data'] = {name: st.session_state['raw_data'][name].copy() for name in st.session_state['raw_data']}
-
-    if 'raw_data' not in st.session_state or 'processed_data' not in st.session_state:
-        st.session_state['raw_data'] = load_historical_data(excel_path)
-        st.session_state['processed_data'] = {name: st.session_state['raw_data'][name].copy() for name in st.session_state['raw_data']}
+    
+    if 'processed_data' not in st.session_state or st.sidebar.button('Daily Historical Update'):
+        st.session_state['processed_data'] = {
+            name: fetch_and_calculate(st.session_state['raw_data'][name].copy(), name) 
+            for name in st.session_state['raw_data']
+        }
 
     if st.sidebar.button('Intraday Refresh'):
-        # Fetch and update intraday data for the selected index.
-        st.session_state['processed_data'][index_choice] = fetch_intraday_data(st.session_state['processed_data'][index_choice].copy(), index_choice)
+        st.session_state['processed_data'][index_choice] = fetch_and_calculate(
+            st.session_state['raw_data'][index_choice].copy(), index_choice)
 
-    df_display = st.session_state['processed_data'][index_choice]
+    df_display = st.session_state['processed_data'][index_choice].copy()
+    df_display['Today Pct Change'] = pd.to_numeric(df_display['Today Pct Change'].astype(str).str.rstrip('%'), errors='coerce')
+    df_display['Color'] = df_display['Volume Ratio'].apply(color_scale)
+
     fig = generate_plot(df_display, index_choice)
     st.plotly_chart(fig)
 
