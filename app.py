@@ -2,113 +2,69 @@ import streamlit as st
 import pandas as pd
 import yfinance as yf
 import plotly.express as px
-import plotly.graph_objs as go
-import openpyxl
 import datetime
 
-#excel_path = 'C:/Users/user/Desktop/MyScripts/Index Bubble Chart/Index Weight.xlsx'
-# Dropbox direct download link
+# Excel data path
 excel_path = 'https://www.dropbox.com/scl/fi/nw5fpges55aff7x5q3gh9/Index-Weight.xlsx?rlkey=rxdopdklplz15jk97zu2sual5&dl=1'
 
-#@st.cache(show_spinner=False, allow_output_mutation=True)
-def load_data(excel_path, force_reload=False):
-    sheet_names = ['HSI', 'HSTECH', 'HSCEI','SP 500']
-    dtype = {'Code': str}
-    return {name: pd.read_excel(excel_path, sheet_name=name, dtype=dtype) for name in sheet_names}
+# Function to load data
+def load_data(excel_path, index_names):
+    return {name: pd.read_excel(excel_path, sheet_name=name, dtype={'Code': str}) for name in index_names}
 
-#@st.cache(show_spinner=False, allow_output_mutation=True)
+# Function to fetch and calculate data
 def fetch_and_calculate(df, index_name):
     for index, row in df.iterrows():
-        # Adjust the stock code format based on the index
-        if index_name == 'SP 500':
-            stock_code = row['Code']  # S&P 500 codes should be used as is
-        else:
-            stock_code = f"{row['Code'].zfill(4)}.HK"  # For Hong Kong stocks, pad and add suffix
-
+        stock_code = f"{row['Code'].zfill(4)}.HK" if index_name != 'SP 500' else row['Code']
         stock = yf.Ticker(stock_code)
         hist = stock.history(period="11d")
-
-        if hist.empty:
-            df.at[index, 'Today Pct Change'] = None
-            df.at[index, 'Volume Ratio'] = None
-        else:
+        
+        if not hist.empty:
             today_data = hist.iloc[-1]
-            avg_volume_10d = hist['Volume'][:-1].mean()
+            avg_volume_10d = hist.iloc[:-1]['Volume'].mean() if len(hist) > 1 else 0
             df.at[index, 'Today Pct Change'] = round(((today_data['Close'] - today_data['Open']) / today_data['Open']) * 100, 2)
-            df.at[index, 'Volume Ratio'] = round(today_data['Volume'] / avg_volume_10d, 2)
+            df.at[index, 'Volume Ratio'] = round(today_data['Volume'] / avg_volume_10d, 2) if avg_volume_10d else 0
 
     return df
 
+# Color scale function
 def color_scale(val):
-    if val > 5: return 'red'
-    elif val > 4: return 'Crimson'
-    elif val > 3: return 'pink'
-    elif val > 2: return 'brown'
-    elif val > 1: return 'orange'
-    else: return 'gray'
+    colors = {range(0, 2): 'blue', range(2, 3): 'orange', range(3, 4): 'pink', range(4, 5): 'Crimson', range(5, 100): 'red'}
+    for key in colors:
+        if val in key:
+            return colors[key]
+    return 'gray'
 
+# Main function for the app
 def main():
     st.set_page_config(page_title="Index Constituents Volume & Price Momentum", layout="wide")
     st.title('Index Components Volume & Price Momentum')
 
-    # Refresh Data button
-    if st.sidebar.button('Refresh Data'):
-        st.session_state.clear()  # Clear session state to force data reload
-        st.experimental_rerun()
+    # Sidebar buttons for data refresh
+    index_names = ['HSI', 'HSTECH', 'HSCEI', 'SP 500']
 
-    # Index selection
-    if 'selected_index' not in st.session_state:
-        st.session_state.selected_index = 'HSI'
-
-    index_choice = st.sidebar.selectbox(
-        'Select Index',
-        ['HSI', 'HSTECH', 'HSCEI', 'SP 500'],
-        index=['HSI', 'HSTECH', 'HSCEI', 'SP 500'].index(st.session_state.selected_index)
-    )
-    st.session_state.selected_index = index_choice
-
-    # Load and process data
-    if 'raw_data' not in st.session_state:
-        st.session_state.raw_data = load_data(excel_path)
+    if st.sidebar.button('Daily Historical Update'):
+        st.session_state.raw_data = load_data(excel_path, index_names)
+        st.session_state.processed_data = {name: fetch_and_calculate(st.session_state.raw_data[name].copy(), name) for name in index_names}
 
     if 'processed_data' not in st.session_state:
-        st.session_state.processed_data = {
-            name: fetch_and_calculate(st.session_state.raw_data[name].copy(deep=True), name)
-            for name in st.session_state.raw_data
-        }
+        st.session_state.processed_data = load_data(excel_path, index_names)
 
-    # Display the data
-    df_display = st.session_state.processed_data[index_choice].copy(deep=True)
-    df_display['Today Pct Change'] = pd.to_numeric(df_display['Today Pct Change'].astype(str).str.rstrip('%'), errors='coerce')
+    index_choice = st.sidebar.selectbox('Select Index', index_names, key='index_choice')
+
+    if st.sidebar.button('Intraday Refresh'):
+        if 'processed_data' in st.session_state and index_choice in st.session_state.processed_data:
+            st.session_state.processed_data[index_choice] = fetch_and_calculate(st.session_state.processed_data[index_choice].copy(), index_choice)
+
+    # Plotting
+    df_display = st.session_state.processed_data[index_choice].copy()
     df_display['Color'] = df_display['Volume Ratio'].apply(color_scale)
-    fig = generate_plot(df_display, index_choice)
-    st.plotly_chart(fig)
 
-def generate_plot(df_display, index_choice):
-    fig = px.scatter(
-        df_display, 
-        x='Volume Ratio', 
-        y='Today Pct Change', 
-        size='Weight',
-        hover_data=['Name', 'Code', 'Today Pct Change', 'Volume Ratio'],
-        color='Color', 
-        color_discrete_map="identity",
-        title=f"{index_choice} Volume Ratio: Today VS.10 Days Average",
-        height=800, 
-        width=1000
-    )
-    fig.update_xaxes(type='log' if df_display['Volume Ratio'].min() > 0 else 'linear')
-    fig.update_layout(
-        plot_bgcolor='black',
-        paper_bgcolor='black',
-        font=dict(color='white'),
-        xaxis=dict(title_font=dict(color='white'), tickfont=dict(color='white')),
-        yaxis=dict(title_font=dict(color='white'), tickfont=dict(color='white'))
-    )
-    return fig
+    fig = px.scatter(df_display, x='Volume Ratio', y='Today Pct Change', size='Weight', color='Color', title=f"{index_choice} Volume Ratio: Today vs 10 Days Average")
+    st.plotly_chart(fig)
 
 if __name__ == "__main__":
     main()
+
 
 
 def plot_candlestick(stock_code):
