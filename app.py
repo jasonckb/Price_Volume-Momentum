@@ -10,14 +10,14 @@ import datetime
 excel_path = 'https://www.dropbox.com/scl/fi/nw5fpges55aff7x5q3gh9/Index-Weight.xlsx?rlkey=rxdopdklplz15jk97zu2sual5&dl=1'
 
 # Define a function to load Excel data, using cache for historical data persistence.
-@st.cache_data(show_spinner=False)
+@st.cache(show_spinner=False)
 def load_historical_data(excel_path):
     sheet_names = ['HSI', 'HSTECH', 'HSCEI', 'SP 500']
     dtype = {'Code': str}
     return {name: pd.read_excel(excel_path, sheet_name=name, dtype=dtype) for name in sheet_names}
 
 # Define a function to fetch and calculate historical data, applying caching.
-@st.cache_data(show_spinner=False)
+@st.cache(show_spinner=False)
 def fetch_and_calculate_historical(df, index_name):
     return process_data(df, index_name, period='max')
 
@@ -89,7 +89,7 @@ def main():
 
     if st.sidebar.button('Daily Historical Update'):
         st.session_state['processed_data'] = {
-            name: fetch_and_calculate_historical(st.session_state['raw_data'][name].copy(), name) 
+            name: fetch_and_calculate_historical(st.session_state['raw_data'][name].copy(), name)
             for name in st.session_state['raw_data']
         }
 
@@ -98,7 +98,7 @@ def main():
             st.session_state['raw_data'][index_choice].copy(), index_choice)
 
     df_display = st.session_state['processed_data'].get(index_choice, pd.DataFrame()).copy()
-    df_display['Color'] = df_display['Volume Ratio'].apply(color_scale)
+    df_display['Color'] = df_display['Volume Ratio'].apply(lambda x: color_scale(x))
 
     if not df_display.empty:
         fig = generate_plot(df_display, index_choice)
