@@ -84,7 +84,7 @@ def main():
 
     # Load raw data if not in session state or force reload is needed
     if 'raw_data' not in st.session_state:
-        st.session_state.raw_data = load_data(excel_path)
+        st.session_state.raw_data = load_historical_data(excel_path)
 
     # Define index choice selection
     index_choice = st.sidebar.selectbox('Select Index', ['HSI', 'HSTECH', 'HSCEI', 'SP 500'])
@@ -96,12 +96,12 @@ def main():
     # Daily Historical Update - load historical data with cache
     if st.sidebar.button('Daily Historical Update'):
         for name in st.session_state.raw_data:
-            st.session_state.processed_data[name] = fetch_and_calculate(st.session_state.raw_data[name].copy(), name, historical=True)
+            st.session_state.processed_data[name] = fetch_and_calculate_historical(st.session_state.raw_data[name].copy(), name, historical=True)
 
     # Intraday Refresh - fetch today's data without cache and merge
     if st.sidebar.button('Intraday Refresh'):
         # Only fetch and update the selected index
-        st.session_state.processed_data[index_choice] = fetch_and_calculate(st.session_state.raw_data[index_choice].copy(), index_choice, historical=False)
+        st.session_state.processed_data[index_choice] = fetch_and_calculate_today(st.session_state.raw_data[index_choice].copy(), index_choice, historical=False)
 
     # Ensure there is data to display for the selected index
     df_display = st.session_state.processed_data.get(index_choice, pd.DataFrame())
