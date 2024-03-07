@@ -9,21 +9,36 @@ import datetime
 # Excel data path
 excel_path = 'https://www.dropbox.com/scl/fi/nw5fpges55aff7x5q3gh9/Index-Weight.xlsx?rlkey=rxdopdklplz15jk97zu2sual5&dl=1'
 
-@st.cache_data(show_spinner=False)
-def load_data(excel_path):
+# Define a function to load Excel data, using cache for historical data persistence.
+@st.cache(show_spinner=False)
+def load_historical_data(excel_path):
     sheet_names = ['HSI', 'HSTECH', 'HSCEI', 'SP 500']
     dtype = {'Code': str}
     return {name: pd.read_excel(excel_path, sheet_name=name, dtype=dtype) for name in sheet_names}
 
-def fetch_and_calculate(df, index_name):
+# Define a function to fetch and calculate historical data, applying caching.
+@st.cache(show_spinner=False)
+def fetch_and_calculate_historical(df, index_name):
+    return process_data(df, index_name, period='max')
+
+# Define a function to fetch and calculate today's data, excluding it from caching.
+def fetch_and_calculate_today(df, index_name):
+    return process_data(df, index_name, period='1d')
+
+# Process the fetched data accordingly.
+def process_data(df, index_name, period):
+    # Define the end date based on the period specified.
+    end_date = 'today' if period == '1d' else None
+
     for index, row in df.iterrows():
         stock_code = row['Code'] if index_name == 'SP 500' else f"{row['Code'].zfill(4)}.HK"
         stock = yf.Ticker(stock_code)
-        hist = stock.history(period="11d")
+        hist = stock.history(period=period, end=end_date)
 
         if not hist.empty:
+            # Calculate for the last available day which could be today or the latest in historical data.
             today_data = hist.iloc[-1]
-            avg_volume_10d = hist['Volume'][:-1].mean()
+            avg_volume_10d = hist['Volume'][:-1].mean() if len(hist) > 1 else today_data['Volume']
             df.at[index, 'Today Pct Change'] = round(((today_data['Close'] - today_data['Open']) / today_data['Open']) * 100, 2)
             df.at[index, 'Volume Ratio'] = round(today_data['Volume'] / avg_volume_10d, 2)
     
@@ -62,35 +77,35 @@ def generate_plot(df_display, index_choice):
     fig.update_xaxes(type='log' if df_display['Volume Ratio'].min() > 0 else 'linear')
     return fig
 
+# Main function orchestrating the app flow.
 def main():
     st.set_page_config(page_title="Index Constituents Volume & Price Momentum", layout="wide")
     st.title('Index Components Volume & Price Momentum')
 
     if 'raw_data' not in st.session_state:
-        st.session_state['raw_data'] = load_data(excel_path)
+        st.session_state['raw_data'] = load_historical_data(excel_path)
     
     index_choice = st.sidebar.selectbox('Select Index', ['HSI', 'HSTECH', 'HSCEI', 'SP 500'])
-    
-    if 'processed_data' not in st.session_state or st.sidebar.button('Daily Historical Update'):
+
+    if st.sidebar.button('Daily Historical Update'):
         st.session_state['processed_data'] = {
-            name: fetch_and_calculate(st.session_state['raw_data'][name].copy(), name) 
+            name: fetch_and_calculate_historical(st.session_state['raw_data'][name].copy(), name)
             for name in st.session_state['raw_data']
         }
 
     if st.sidebar.button('Intraday Refresh'):
-        st.session_state['processed_data'][index_choice] = fetch_and_calculate(
+        st.session_state['processed_data'][index_choice] = fetch_and_calculate_today(
             st.session_state['raw_data'][index_choice].copy(), index_choice)
 
-    df_display = st.session_state['processed_data'][index_choice].copy()
-    df_display['Today Pct Change'] = pd.to_numeric(df_display['Today Pct Change'].astype(str).str.rstrip('%'), errors='coerce')
-    df_display['Color'] = df_display['Volume Ratio'].apply(color_scale)
+    df_display = st.session_state['processed_data'].get(index_choice, pd.DataFrame()).copy()
+    df_display['Color'] = df_display['Volume Ratio'].apply(lambda x: color_scale(x))
 
-    fig = generate_plot(df_display, index_choice)
-    st.plotly_chart(fig)
+    if not df_display.empty:
+        fig = generate_plot(df_display, index_choice)
+        st.plotly_chart(fig)
 
 if __name__ == "__main__":
     main()
-
 
 def plot_candlestick(stock_code):
     # Fetch historical data
