@@ -19,21 +19,40 @@ def fetch_and_calculate_historical(df, index_name):
     for index, row in df.iterrows():
         stock_code = row['Code'] if index_name == 'SP 500' else f"{row['Code'].zfill(4)}.HK"
         stock = yf.Ticker(stock_code)
-        hist = stock.history(period="2y")
-        avg_volume_10d = hist['Volume'][:-1].tail(10).mean()
-        df.at[index, 'Today Pct Change'] = round(((hist['Close'].iloc[-2] - hist['Close'].iloc[-3]) / hist['Close'].iloc[-3]) * 100, 2)
-        df.at[index, 'Volume Ratio'] = round(hist['Volume'].iloc[-2] / avg_volume_10d, 2)
+        hist = stock.history(period="2y")  # Fetching 2 years of historical data
+
+        # Validate enough historical data is present
+        if len(hist) >= 2:
+            yesterday_volume = hist['Volume'].iloc[-2]
+            avg_volume_10d = hist['Volume'].tail(11).mean()  # Include up to but not including today
+            yesterday_pct_change = ((hist['Close'].iloc[-2] - hist['Close'].iloc[-3]) / hist['Close'].iloc[-3]) * 100
+
+            df.at[index, 'Today Pct Change'] = round(yesterday_pct_change, 2)
+            df.at[index, 'Volume Ratio'] = round(yesterday_volume / avg_volume_10d, 2)
+        else:
+            # Not enough data, set as None or appropriate default
+            df.at[index, 'Today Pct Change'], df.at[index, 'Volume Ratio'] = None, None
+
     return df
 
 def fetch_and_calculate_intraday(df, index_name):
+    today = datetime.datetime.now().strftime('%Y-%m-%d')
     for index, row in df.iterrows():
         stock_code = row['Code'] if index_name == 'SP 500' else f"{row['Code'].zfill(4)}.HK"
         stock = yf.Ticker(stock_code)
-        hist = stock.history(period="1d")
+        hist = stock.history(start=today)
+
+        # Validate today's data is present
         if not hist.empty:
-            avg_volume_10d = (df.at[index, 'Volume Ratio'] * 10 - hist['Volume'].iloc[-1]) / 9  # Adjust previous average
-            df.at[index, 'Today Pct Change'] = round(((hist['Close'].iloc[-1] - hist['Close'].iloc[-2]) / hist['Close'].iloc[-2]) * 100, 2)
-            df.at[index, 'Volume Ratio'] = round(hist['Volume'].iloc[-1] / avg_volume_10d, 2)
+            today_volume = hist['Volume'].iloc[-1]
+            if len(hist) > 1:  # Comparing with the previous trading day
+                avg_volume_10d_adjusted = (df.at[index, 'Volume Ratio'] * 10 - today_volume) / 9  # Adjust the previous average volume
+                today_pct_change = ((hist['Close'].iloc[-1] - hist['Close'].iloc[-2]) / hist['Close'].iloc[-2]) * 100
+                df.at[index, 'Today Pct Change'] = round(today_pct_change, 2)
+                df.at[index, 'Volume Ratio'] = round(today_volume / avg_volume_10d_adjusted, 2)
+            else:  # In case only today's data is available (e.g., early in the trading day)
+                df.at[index, 'Today Pct Change'], df.at[index, 'Volume Ratio'] = None, None
+
     return df
 
 def color_scale(val):
@@ -73,14 +92,11 @@ def main():
     st.set_page_config(page_title="Index Constituents Volume & Price Momentum", layout="wide")
     st.title('Index Components Volume & Price Momentum')
 
-    # Load data from Excel
     if 'raw_data' not in st.session_state:
         st.session_state['raw_data'] = load_data(excel_path)
     
-    # Select index
     index_choice = st.sidebar.selectbox('Select Index', ['HSI', 'HSTECH', 'HSCEI', 'SP 500'])
 
-    # Handle data processing
     if 'processed_data' not in st.session_state or st.sidebar.button('Daily Historical Update'):
         st.session_state['processed_data'] = {
             name: fetch_and_calculate_historical(st.session_state['raw_data'][name].copy(), name) 
@@ -88,11 +104,9 @@ def main():
         }
 
     if st.sidebar.button('Intraday Refresh'):
-        # Perform intraday update only for the selected index
         st.session_state['processed_data'][index_choice] = fetch_and_calculate_intraday(
             st.session_state['processed_data'][index_choice].copy(), index_choice)
 
-    # Display processed data
     df_display = st.session_state['processed_data'].get(index_choice, pd.DataFrame()).copy()
     if not df_display.empty:
         df_display['Color'] = df_display['Volume Ratio'].apply(color_scale)
@@ -101,6 +115,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
