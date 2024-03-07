@@ -36,24 +36,27 @@ def fetch_and_calculate_historical(df, index_name):
     return df
 
 def fetch_and_calculate_intraday(df, index_name):
-    today = datetime.datetime.now().strftime('%Y-%m-%d')
+    # Assume df already contains the latest historical data until yesterday.
     for index, row in df.iterrows():
         stock_code = row['Code'] if index_name == 'SP 500' else f"{row['Code'].zfill(4)}.HK"
         stock = yf.Ticker(stock_code)
-        hist = stock.history(start=today)
+        today_data = stock.history(period="1d")
 
-        # Validate today's data is present
-        if not hist.empty:
-            today_volume = hist['Volume'].iloc[-1]
-            if len(hist) > 1:  # Comparing with the previous trading day
-                avg_volume_10d_adjusted = (df.at[index, 'Volume Ratio'] * 10 - today_volume) / 9  # Adjust the previous average volume
-                today_pct_change = ((hist['Close'].iloc[-1] - hist['Close'].iloc[-2]) / hist['Close'].iloc[-2]) * 100
-                df.at[index, 'Today Pct Change'] = round(today_pct_change, 2)
-                df.at[index, 'Volume Ratio'] = round(today_volume / avg_volume_10d_adjusted, 2)
-            else:  # In case only today's data is available (e.g., early in the trading day)
-                df.at[index, 'Today Pct Change'], df.at[index, 'Volume Ratio'] = None, None
+        if not today_data.empty:
+            # We assume the latest available historical data in 'df' is from the last trading day.
+            # The '-2' indexing might need adjustments depending on the data's availability.
+            last_close = df.at[index, 'Yesterday Close']
+            last_volume = df.at[index, '10 Day Avg Volume']  # This should be pre-calculated and stored.
+            
+            today_close = today_data['Close'].iloc[-1]
+            today_volume = today_data['Volume'].iloc[-1]
 
+            # Update today's metrics.
+            df.at[index, 'Today Pct Change'] = round(((today_close - last_close) / last_close) * 100, 2)
+            df.at[index, 'Volume Ratio'] = round(today_volume / last_volume, 2)
+    
     return df
+
 
 def color_scale(val):
     if val > 5: return 'red'
