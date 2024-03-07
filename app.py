@@ -94,11 +94,16 @@ def main():
         }
 
     if st.sidebar.button('Intraday Refresh'):
-        st.session_state['processed_data'][index_choice] = fetch_and_calculate_today(
-            st.session_state['raw_data'][index_choice].copy(), index_choice)
+        # Ensure the intraday refresh updates the correct index without affecting others
+        updated_data = fetch_and_calculate_today(st.session_state['raw_data'][index_choice].copy(), index_choice)
+        if updated_data is not None:
+            st.session_state['processed_data'][index_choice] = updated_data
 
     df_display = st.session_state['processed_data'].get(index_choice, pd.DataFrame()).copy()
-    df_display['Color'] = df_display['Volume Ratio'].apply(color_scale)
+    if 'Volume Ratio' in df_display.columns:
+        df_display['Color'] = df_display['Volume Ratio'].apply(color_scale)
+    else:
+        st.error("Volume Ratio data is not available.")
 
     if not df_display.empty:
         fig = generate_plot(df_display, index_choice)
@@ -106,6 +111,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 def plot_candlestick(stock_code):
     # Fetch historical data
