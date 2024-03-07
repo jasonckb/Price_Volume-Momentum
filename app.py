@@ -66,6 +66,10 @@ def color_scale(val):
     else: return 'gray'
 
 def generate_plot(df_display, index_choice):
+    # Find the minimum and maximum 'Today Pct Change' values for setting the y-axis range
+    min_pct_change = df_display['Today Pct Change'].min() * 1.1  # Add a 10% padding
+    max_pct_change = df_display['Today Pct Change'].max() * 1.1  # Add a 10% padding
+    
     fig = px.scatter(
         df_display, 
         x='Volume Ratio', 
@@ -79,16 +83,18 @@ def generate_plot(df_display, index_choice):
         width=1000
     )
 
+    # Update the layout to dynamically adjust the y-axis based on the data
     fig.update_layout(
         plot_bgcolor='black',
         paper_bgcolor='black',
         font=dict(color='white'),
         xaxis=dict(title_font=dict(color='white'), tickfont=dict(color='white')),
-        yaxis=dict(title_font=dict(color='white'), tickfont=dict(color='white'))
+        yaxis=dict(title_font=dict(color='white'), tickfont=dict(color='white'), range=[min_pct_change, max_pct_change])
     )
 
     fig.update_xaxes(type='log' if df_display['Volume Ratio'].min() > 0 else 'linear')
     return fig
+
 
 def main():
     st.set_page_config(page_title="Index Constituents Volume & Price Momentum", layout="wide")
