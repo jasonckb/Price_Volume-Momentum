@@ -35,12 +35,12 @@ def process_data(df, index_name, period):
         stock = yf.Ticker(stock_code)
         hist = stock.history(period=period, end=end_date)
 
-        if not hist.empty:
-            # Calculate for the last available day which could be today or the latest in historical data.
-            today_data = hist.iloc[-1]
-            avg_volume_10d = hist['Volume'][:-1].mean() if len(hist) > 1 else today_data['Volume']
-            df.at[index, 'Today Pct Change'] = round(((today_data['Close'] - today_data['Open']) / today_data['Open']) * 100, 2)
-            df.at[index, 'Volume Ratio'] = round(today_data['Volume'] / avg_volume_10d, 2)
+        if not hist.empty and len(hist) > 1:
+            today_close = hist.iloc[-1]['Close']
+            prev_close = hist.iloc[-2]['Close']
+            today_pct_change = round(((today_close - prev_close) / prev_close) * 100, 2)
+            df.at[index, 'Today Pct Change'] = today_pct_change
+            df.at[index, 'Volume Ratio'] = round(hist.iloc[-1]['Volume'] / hist['Volume'][:-1].mean(), 2)
     
     return df
 
