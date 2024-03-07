@@ -82,41 +82,30 @@ def main():
     st.set_page_config(page_title="Index Constituents Volume & Price Momentum", layout="wide")
     st.title('Index Components Volume & Price Momentum')
 
-    # Load raw data if not in session state or force reload is needed
     if 'raw_data' not in st.session_state:
-        st.session_state.raw_data = load_historical_data(excel_path)
-
-    # Define index choice selection
+        st.session_state['raw_data'] = load_historical_data(excel_path)
+    
     index_choice = st.sidebar.selectbox('Select Index', ['HSI', 'HSTECH', 'HSCEI', 'SP 500'])
 
-    # Initialize processed data if not present in session state
-    if 'processed_data' not in st.session_state:
-        st.session_state.processed_data = {}
-
-    # Daily Historical Update - load historical data with cache
     if st.sidebar.button('Daily Historical Update'):
-        for name in st.session_state.raw_data:
-            st.session_state.processed_data[name] = fetch_and_calculate_historical(st.session_state.raw_data[name].copy(), name, historical=True)
+        st.session_state['processed_data'] = {
+            name: fetch_and_calculate_historical(st.session_state['raw_data'][name].copy(), name) 
+            for name in st.session_state['raw_data']
+        }
 
-    # Intraday Refresh - fetch today's data without cache and merge
     if st.sidebar.button('Intraday Refresh'):
-        # Only fetch and update the selected index
-        st.session_state.processed_data[index_choice] = fetch_and_calculate_today(st.session_state.raw_data[index_choice].copy(), index_choice, historical=False)
+        st.session_state['processed_data'][index_choice] = fetch_and_calculate_today(
+            st.session_state['raw_data'][index_choice].copy(), index_choice)
 
-    # Ensure there is data to display for the selected index
-    df_display = st.session_state.processed_data.get(index_choice, pd.DataFrame())
-    
-    # Apply color scale and generate the plot if data is available
+    df_display = st.session_state['processed_data'].get(index_choice, pd.DataFrame()).copy()
+    df_display['Color'] = df_display['Volume Ratio'].apply(color_scale)
+
     if not df_display.empty:
-        df_display['Color'] = df_display['Volume Ratio'].apply(color_scale)
         fig = generate_plot(df_display, index_choice)
         st.plotly_chart(fig)
-    else:
-        st.error("No data available to display.")
 
 if __name__ == "__main__":
     main()
-
 
 def plot_candlestick(stock_code):
     # Fetch historical data
