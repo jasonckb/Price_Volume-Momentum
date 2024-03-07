@@ -79,25 +79,31 @@ def generate_plot(df_display, index_choice):
     fig.update_xaxes(type='log' if df_display['Volume Ratio'].min() > 0 else 'linear')
     return fig
 
+def process_historical_data(raw_data, index_name):
+    # This function processes the historical data.
+    processed_data = fetch_and_calculate_historical(raw_data[index_name].copy(), index_name)
+    return processed_data
+
+def process_intraday_data(current_data, index_name):
+    # This function processes the intraday data.
+    intraday_data = fetch_and_calculate_intraday(current_data.copy(), index_name)
+    return intraday_data
+
 def main():
     st.set_page_config(page_title="Index Constituents Volume & Price Momentum", layout="wide")
     st.title('Index Components Volume & Price Momentum')
 
     if 'raw_data' not in st.session_state:
         st.session_state['raw_data'] = load_data(excel_path)
-    
+
     index_choice = st.sidebar.selectbox('Select Index', ['HSI', 'HSTECH', 'HSCEI', 'SP 500'])
 
-    # Daily Historical Update
     if st.sidebar.button('Daily Historical Update'):
-        for name in st.session_state['raw_data']:
-            st.session_state['processed_data'][name] = fetch_and_calculate_historical(st.session_state['raw_data'][name].copy(), name)
+        st.session_state['processed_data'] = {index_choice: process_historical_data(st.session_state['raw_data'], index_choice)}
 
-    # Intraday Refresh
     if st.sidebar.button('Intraday Refresh'):
         if 'processed_data' in st.session_state and index_choice in st.session_state['processed_data']:
-            st.session_state['processed_data'][index_choice] = fetch_and_calculate_intraday(
-                st.session_state['processed_data'][index_choice].copy(), index_choice)
+            st.session_state['processed_data'][index_choice] = process_intraday_data(st.session_state['processed_data'][index_choice], index_choice)
         else:
             st.warning('Please perform "Daily Historical Update" first.')
 
@@ -110,6 +116,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 def plot_candlestick(stock_code):
