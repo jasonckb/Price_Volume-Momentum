@@ -36,25 +36,24 @@ def fetch_and_calculate_historical(df, index_name):
     return df
 
 def fetch_and_calculate_intraday(df, index_name):
-    # Assume df already contains the latest historical data until yesterday.
+    # Error handling for unavailable data.
     for index, row in df.iterrows():
-        stock_code = row['Code'] if index_name == 'SP 500' else f"{row['Code'].zfill(4)}.HK"
-        stock = yf.Ticker(stock_code)
-        today_data = stock.history(period="1d")
+        try:
+            stock_code = row['Code'] if index_name == 'SP 500' else f"{row['Code'].zfill(4)}.HK"
+            stock = yf.Ticker(stock_code)
+            today_data = stock.history(period="1d")
 
-        if not today_data.empty:
-            # We assume the latest available historical data in 'df' is from the last trading day.
-            # The '-2' indexing might need adjustments depending on the data's availability.
-            last_close = df.at[index, 'Yesterday Close']
-            last_volume = df.at[index, '10 Day Avg Volume']  # This should be pre-calculated and stored.
-            
-            today_close = today_data['Close'].iloc[-1]
-            today_volume = today_data['Volume'].iloc[-1]
+            if not today_data.empty and 'Yesterday Close' in df.columns and '10 Day Avg Volume' in df.columns:
+                last_close = df.at[index, 'Yesterday Close']
+                avg_volume_10d = df.at[index, '10 Day Avg Volume']
 
-            # Update today's metrics.
-            df.at[index, 'Today Pct Change'] = round(((today_close - last_close) / last_close) * 100, 2)
-            df.at[index, 'Volume Ratio'] = round(today_volume / last_volume, 2)
-    
+                today_close = today_data['Close'].iloc[-1]
+                today_volume = today_data['Volume'].iloc[-1]
+
+                df.at[index, 'Today Pct Change'] = round(((today_close - last_close) / last_close) * 100, 2)
+                df.at[index, 'Volume Ratio'] = round(today_volume / avg_volume_10d, 2)
+        except Exception as e:
+            print(f"Error processing {stock_code}: {e}")
     return df
 
 
