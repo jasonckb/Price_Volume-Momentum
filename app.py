@@ -89,7 +89,7 @@ def main():
 
     if st.sidebar.button('Daily Historical Update'):
         st.session_state['processed_data'] = {
-            name: fetch_and_calculate_historical(st.session_state['raw_data'][name].copy(), name)
+            name: fetch_and_calculate_historical(st.session_state['raw_data'][name].copy(), name) 
             for name in st.session_state['raw_data']
         }
 
@@ -98,7 +98,7 @@ def main():
             st.session_state['raw_data'][index_choice].copy(), index_choice)
 
     df_display = st.session_state['processed_data'].get(index_choice, pd.DataFrame()).copy()
-    df_display['Color'] = df_display['Volume Ratio'].apply(lambda x: color_scale(x))
+    df_display['Color'] = df_display['Volume Ratio'].apply(color_scale)
 
     if not df_display.empty:
         fig = generate_plot(df_display, index_choice)
