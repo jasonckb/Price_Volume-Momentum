@@ -46,7 +46,7 @@ def fetch_and_calculate_intraday(df, index_name):
         try:
             stock_code = row['Code'] if index_name == 'SP 500' else f"{row['Code'].zfill(4)}.HK"
             stock = yf.Ticker(stock_code)
-            today_data = stock.history(period="1d")
+            today_data = stock.history(period="1mo")
 
             if not today_data.empty:
                 if 'Yesterday Close' in df.columns and '10 Day Avg Volume' in df.columns:
