@@ -67,6 +67,14 @@ def fetch_and_calculate_intraday(df, index_name):
     
     return df
 
+def color_scale(val):
+    if val > 5: return 'red'
+    elif val > 4: return 'Crimson'
+    elif val > 3: return 'pink'
+    elif val > 2: return 'brown'
+    elif val > 1: return 'orange'
+    else: return 'gray'
+
 def generate_plot(df_display, index_choice):
     if 'Today Pct Change' in df_display.columns:
         min_pct_change = df_display['Today Pct Change'].min() * 1.1 if pd.notna(df_display['Today Pct Change']).any() else -10
