@@ -19,7 +19,7 @@ def fetch_and_calculate_historical(df, index_name):
     for index, row in df.iterrows():
         stock_code = row['Code'] if index_name == 'SP 500' else f"{row['Code'].zfill(4)}.HK"
         stock = yf.Ticker(stock_code)
-        hist = stock.history(period="12d")  # Fetching 12 days of historical data (including today)
+        hist = stock.history(period="1mo")  # Fetching 12 days of historical data (including today)
 
         if len(hist) >= 11:
             yesterday_close = hist['Close'].iloc[-2]
