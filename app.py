@@ -19,56 +19,60 @@ def fetch_and_calculate_historical(df, index_name):
     for index, row in df.iterrows():
         stock_code = row['Code'] if index_name == 'SP 500' else f"{row['Code'].zfill(4)}.HK"
         stock = yf.Ticker(stock_code)
-        hist = stock.history(period="2y")  # Fetching 2 years of historical data
+        hist = stock.history(period="20d")  # Fetching 2 years of historical data
 
-        # Validate enough historical data is present
-        if len(hist) >= 2:
+        if len(hist) >= 3:
+            yesterday_close = hist['Close'].iloc[-2]
             yesterday_volume = hist['Volume'].iloc[-2]
             avg_volume_10d = hist['Volume'].tail(11).mean()  # Include up to but not including today
-            yesterday_pct_change = ((hist['Close'].iloc[-2] - hist['Close'].iloc[-3]) / hist['Close'].iloc[-3]) * 100
+            yesterday_pct_change = ((yesterday_close - hist['Close'].iloc[-3]) / hist['Close'].iloc[-3]) * 100
 
+            df.at[index, 'Yesterday Close'] = yesterday_close
             df.at[index, 'Today Pct Change'] = round(yesterday_pct_change, 2)
+            df.at[index, '10 Day Avg Volume'] = avg_volume_10d
             df.at[index, 'Volume Ratio'] = round(yesterday_volume / avg_volume_10d, 2)
         else:
             # Not enough data, set as None or appropriate default
-            df.at[index, 'Today Pct Change'], df.at[index, 'Volume Ratio'] = None, None
+            df.at[index, 'Yesterday Close'] = None
+            df.at[index, 'Today Pct Change'] = None
+            df.at[index, '10 Day Avg Volume'] = None 
+            df.at[index, 'Volume Ratio'] = None
 
     return df
 
 def fetch_and_calculate_intraday(df, index_name):
-    # Error handling for unavailable data.
     for index, row in df.iterrows():
         try:
             stock_code = row['Code'] if index_name == 'SP 500' else f"{row['Code'].zfill(4)}.HK"
             stock = yf.Ticker(stock_code)
             today_data = stock.history(period="1d")
 
-            if not today_data.empty and 'Yesterday Close' in df.columns and '10 Day Avg Volume' in df.columns:
-                last_close = df.at[index, 'Yesterday Close']
-                avg_volume_10d = df.at[index, '10 Day Avg Volume']
+            if not today_data.empty:
+                if 'Yesterday Close' in df.columns and '10 Day Avg Volume' in df.columns:
+                    last_close = df.at[index, 'Yesterday Close']
+                    avg_volume_10d = df.at[index, '10 Day Avg Volume']
 
-                today_close = today_data['Close'].iloc[-1]
-                today_volume = today_data['Volume'].iloc[-1]
+                    today_close = today_data['Close'].iloc[-1]
+                    today_volume = today_data['Volume'].iloc[-1]
 
-                df.at[index, 'Today Pct Change'] = round(((today_close - last_close) / last_close) * 100, 2)
-                df.at[index, 'Volume Ratio'] = round(today_volume / avg_volume_10d, 2)
+                    df.at[index, 'Today Pct Change'] = round(((today_close - last_close) / last_close) * 100, 2)
+                    df.at[index, 'Volume Ratio'] = round(today_volume / avg_volume_10d, 2)
+                else:
+                    print(f"Missing required columns for {stock_code}")
+            else:
+                print(f"No data available for {stock_code}")
         except Exception as e:
             print(f"Error processing {stock_code}: {e}")
+    
     return df
 
-
-def color_scale(val):
-    if val > 5: return 'red'
-    elif val > 4: return 'Crimson'
-    elif val > 3: return 'pink'
-    elif val > 2: return 'brown'
-    elif val > 1: return 'orange'
-    else: return 'gray'
-
 def generate_plot(df_display, index_choice):
-    # Find the minimum and maximum 'Today Pct Change' values for setting the y-axis range
-    min_pct_change = df_display['Today Pct Change'].min() * 1.1  # Add a 10% padding
-    max_pct_change = df_display['Today Pct Change'].max() * 1.1  # Add a 10% padding
+    if 'Today Pct Change' in df_display.columns:
+        min_pct_change = df_display['Today Pct Change'].min() * 1.1 if pd.notna(df_display['Today Pct Change']).any() else -10
+        max_pct_change = df_display['Today Pct Change'].max() * 1.1 if pd.notna(df_display['Today Pct Change']).any() else 10
+    else:
+        min_pct_change = -10
+        max_pct_change = 10
     
     fig = px.scatter(
         df_display, 
@@ -83,7 +87,6 @@ def generate_plot(df_display, index_choice):
         width=1000
     )
 
-    # Update the layout to dynamically adjust the y-axis based on the data
     fig.update_layout(
         plot_bgcolor='black',
         paper_bgcolor='black',
@@ -92,8 +95,13 @@ def generate_plot(df_display, index_choice):
         yaxis=dict(title_font=dict(color='white'), tickfont=dict(color='white'), range=[min_pct_change, max_pct_change])
     )
 
-    fig.update_xaxes(type='log' if df_display['Volume Ratio'].min() > 0 else 'linear')
+    if df_display['Volume Ratio'].min() > 0:
+        fig.update_xaxes(type='log')
+    else:
+        fig.update_xaxes(type='linear')
+
     return fig
+
 
 
 def main():
