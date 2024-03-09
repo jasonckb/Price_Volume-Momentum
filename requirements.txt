@@ -3,7 +3,7 @@ pandas
 yfinance
 plotly
 openpyxl
-dtetime
+datetime
 
 
 
