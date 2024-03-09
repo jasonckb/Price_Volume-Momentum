@@ -9,7 +9,7 @@ import datetime
 # Excel data path
 excel_path = 'https://www.dropbox.com/scl/fi/nw5fpges55aff7x5q3gh9/Index-Weight.xlsx?rlkey=rxdopdklplz15jk97zu2sual5&dl=1'
 
-@st.cache(show_spinner=False, allow_output_mutation=True)
+@st.cache_data(show_spinner=False, allow_output_mutation=True)
 def load_data(excel_path):
     sheet_names = ['HSI', 'HSTECH', 'HSCEI', 'SP 500']
     dtype = {'Code': str}
@@ -19,12 +19,12 @@ def fetch_and_calculate_historical(df, index_name):
     for index, row in df.iterrows():
         stock_code = row['Code'] if index_name == 'SP 500' else f"{row['Code'].zfill(4)}.HK"
         stock = yf.Ticker(stock_code)
-        hist = stock.history(period="20d")  # Fetching 2 years of historical data
+        hist = stock.history(period="12d")  # Fetching 12 days of historical data (including today)
 
-        if len(hist) >= 3:
+        if len(hist) >= 11:
             yesterday_close = hist['Close'].iloc[-2]
             yesterday_volume = hist['Volume'].iloc[-2]
-            avg_volume_10d = hist['Volume'].tail(11).mean()  # Include up to but not including today
+            avg_volume_10d = hist['Volume'].iloc[-11:-1].mean()  # Calculate average volume for the past 10 days (excluding today)
             yesterday_pct_change = ((yesterday_close - hist['Close'].iloc[-3]) / hist['Close'].iloc[-3]) * 100
 
             df.at[index, 'Yesterday Close'] = yesterday_close
@@ -35,10 +35,11 @@ def fetch_and_calculate_historical(df, index_name):
             # Not enough data, set as None or appropriate default
             df.at[index, 'Yesterday Close'] = None
             df.at[index, 'Today Pct Change'] = None
-            df.at[index, '10 Day Avg Volume'] = None 
+            df.at[index, '10 Day Avg Volume'] = None
             df.at[index, 'Volume Ratio'] = None
 
     return df
+
 
 def fetch_and_calculate_intraday(df, index_name):
     for index, row in df.iterrows():
